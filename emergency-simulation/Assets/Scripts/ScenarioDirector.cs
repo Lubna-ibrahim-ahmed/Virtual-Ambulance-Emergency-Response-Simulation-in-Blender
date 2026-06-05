@@ -150,7 +150,7 @@ namespace EmergencySim
             yield return new WaitForSeconds(0.8f);
 
             yield return new WaitForSeconds(toppleDelay);
-            // Cut to the tight fall angle as the tree comes down.
+            // Beat 1 — FALL: cut to the side angle as the tree comes down.
             if (cameraDirector) cameraDirector.Snap(1);
             if (heroTree) heroTree.Topple();
 
@@ -160,19 +160,22 @@ namespace EmergencySim
             Debug.Log($"[Director] Impact phase done (treeHit={_treeHit}) → knockdown");
             if (!_treeHit && kateVictim) kateVictim.Knockdown();
 
-            yield return new WaitForSeconds(postImpactHold);
-
-            // Cut to the witness and let them react + call 911.
-            Debug.Log("[Director] Cut to witness → ReactAndCall");
+            // Hold on the impact, then Beat 2 — KATE DOWN.
+            yield return new WaitForSeconds(1.5f);
             if (cameraDirector) cameraDirector.Snap(2);
+            yield return new WaitForSeconds(2f);
+
+            // Beat 3 — WITNESS reacts + calls 911.
+            Debug.Log("[Director] Cut to witness → ReactAndCall");
+            if (cameraDirector) cameraDirector.Snap(3);
             if (witness) witness.ReactAndCall();
 
-            // Partway through the 911 call, cut to an alternate witness angle, then hand off.
-            float altT = 0f; bool altCut = false;
+            // Beat 4 — PHONE: push in to the close-up partway through the call, then hand off.
+            float phoneT = 0f; bool phoneCut = false;
             while (!_callDone)
             {
-                altT += Time.deltaTime;
-                if (!altCut && altT > 4f) { if (cameraDirector) cameraDirector.Snap(3); altCut = true; }
+                phoneT += Time.deltaTime;
+                if (!phoneCut && phoneT > 3.5f) { if (cameraDirector) cameraDirector.Snap(4); phoneCut = true; }
                 yield return null;
             }
 

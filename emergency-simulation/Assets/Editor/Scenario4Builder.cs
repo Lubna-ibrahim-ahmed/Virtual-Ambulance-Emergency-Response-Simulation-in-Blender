@@ -412,37 +412,44 @@ public static class Scenario4Builder
         storm.thunderSource = thunderSrc;
         storm.baseIntensity = moon.intensity;
 
-        // ---------- Camera shots (markers are user-adjustable in the Scene view) ----------
+        // ---------- Camera shots: one clear, un-occluded framing per story beat ----------
+        // (all on the ROAD side so the fallen tree never blocks the subject; user-adjustable)
         var shotsParent = new GameObject("CameraShots").transform;
 
-        // 0: wide establishing — Kate walking the left sidewalk toward the looming tree
-        var shot1 = new GameObject("Shot1_Wide").transform;
-        shot1.SetParent(shotsParent);
-        shot1.position = new Vector3(1f, 4.5f, 0f);
-        shot1.LookAt(new Vector3(-6.5f, 2.2f, 11f));
+        // 0: WALK — establishing; Kate coming up the sidewalk toward the looming tree
+        var sWalk = new GameObject("Shot1_Walk").transform;
+        sWalk.SetParent(shotsParent);
+        sWalk.position = new Vector3(0.5f, 3.5f, 1f);
+        sWalk.LookAt(new Vector3(-6f, 1.5f, 9f));
 
-        // 1: fall close-up — tighter, low angle on Kate + the tree coming down
-        var shot2 = new GameObject("Shot2_FallCloseup").transform;
-        shot2.SetParent(shotsParent);
-        shot2.position = new Vector3(-2.5f, 1.5f, 5.5f);
-        shot2.LookAt(new Vector3(-6.5f, 1.8f, 9.5f));
+        // 1: FALL — side view of the tree toppling down onto Kate
+        var sFall = new GameObject("Shot2_Fall").transform;
+        sFall.SetParent(shotsParent);
+        sFall.position = new Vector3(-2.5f, 2.0f, 11.5f);
+        sFall.LookAt(new Vector3(-6.5f, 2.4f, 10.3f));
 
-        // 2: witness — medium from the ROAD side (witness in front, accident behind, NOT occluded)
-        var shot3 = new GameObject("Shot3_Witness").transform;
-        shot3.SetParent(shotsParent);
-        shot3.position = new Vector3(0f, 2f, 6f);
-        shot3.LookAt(new Vector3(-4f, 1.45f, 8.5f));
+        // 2: KATE DOWN — the accident; Kate prone with the tree on her
+        var sDown = new GameObject("Shot3_KateDown").transform;
+        sDown.SetParent(shotsParent);
+        sDown.position = new Vector3(-2.5f, 2.3f, 5.5f);
+        sDown.LookAt(new Vector3(-6.5f, 0.6f, 9.3f));
 
-        // 3: witness phone close-up — from his right side (road side) so the lit phone reads clearly
-        var shot4 = new GameObject("Shot4_WitnessAlt").transform;
-        shot4.SetParent(shotsParent);
-        shot4.position = new Vector3(-1.8f, 1.62f, 8.4f);
-        shot4.LookAt(new Vector3(-4f, 1.55f, 8.4f));
+        // 3: WITNESS — reacting + calling 911, accident visible behind
+        var sWit = new GameObject("Shot4_Witness").transform;
+        sWit.SetParent(shotsParent);
+        sWit.position = new Vector3(0f, 2f, 6f);
+        sWit.LookAt(new Vector3(-4f, 1.45f, 8.5f));
+
+        // 4: PHONE — close on the witness + lit phone (from his right side)
+        var sPhone = new GameObject("Shot5_PhoneCloseup").transform;
+        sPhone.SetParent(shotsParent);
+        sPhone.position = new Vector3(-1.8f, 1.62f, 8.4f);
+        sPhone.LookAt(new Vector3(-4f, 1.55f, 8.4f));
 
         var camDir = camGo.AddComponent<CameraDirector>();
         camDir.cam = cam;
-        camDir.shots = new[] { shot1, shot2, shot3, shot4 };
-        camGo.transform.SetPositionAndRotation(shot1.position, shot1.rotation);
+        camDir.shots = new[] { sWalk, sFall, sDown, sWit, sPhone };
+        camGo.transform.SetPositionAndRotation(sWalk.position, sWalk.rotation);
 
         // ---------- Rescue channel + stub ----------
         var channel = AssetDatabase.LoadAssetAtPath<Vector3GameEvent>(ChannelPath);
