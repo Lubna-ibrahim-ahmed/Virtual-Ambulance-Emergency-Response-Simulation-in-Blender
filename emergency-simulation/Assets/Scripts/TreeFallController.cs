@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 namespace EmergencySim
@@ -19,6 +20,8 @@ namespace EmergencySim
         public float toppleTorque = 600f;
         [Tooltip("Local axis the tree rotates about when falling (horizontal, perpendicular to fall dir).")]
         public Vector3 torqueAxisLocal = Vector3.forward;
+        [Tooltip("Seconds after toppling to freeze the tree so it stays down (no bouncing).")]
+        public float settleDelay = 2.5f;
 
         public event Action<Vector3> OnHitPatient;
 
@@ -67,6 +70,19 @@ namespace EmergencySim
                 body.isKinematic = false;
                 Vector3 axis = transform.TransformDirection(torqueAxisLocal).normalized;
                 body.AddTorque(axis * toppleTorque, ForceMode.Impulse);
+            }
+            StartCoroutine(SettleAndFreeze());
+        }
+
+        // After the tree has fallen, freeze it in place so it rests and never bounces.
+        private IEnumerator SettleAndFreeze()
+        {
+            yield return new WaitForSeconds(settleDelay);
+            if (body)
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                body.isKinematic = true;
             }
         }
 

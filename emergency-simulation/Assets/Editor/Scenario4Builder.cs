@@ -192,18 +192,19 @@ public static class Scenario4Builder
         witnessCtrl.lookAtTarget = kate.transform;
         witnessCtrl.phoneProp = MakePhoneProp(witness);
 
-        // Background pedestrians (textured, from Pedestrians folder): Ch02 + Ch33, on the right sidewalk
-        var bg1 = MakeCharacter(PedDir + "Ch02.fbx", "Background1", new Vector3(5f, 0f, -9f), bgAC);
+        // Background pedestrians — walk PARALLEL to Kate, a little ahead of her (same +z dir,
+        // matched pace), on lanes between her sidewalk and the road.
+        var bg1 = MakeCharacter(PedDir + "Ch02.fbx", "Background1", new Vector3(-5f, 0f, -6f), bgAC);
         ApplyExtractedTextures(bg1, "Ch02");
         var bg1Follower = bg1.AddComponent<WaypointFollower>();
         bg1Follower.animator = bg1.GetComponent<Animator>();
-        bg1Follower.speed = 1.4f; bg1Follower.loop = true;
+        bg1Follower.speed = 1.5f; bg1Follower.loop = false;
 
-        var bg2 = MakeCharacter(PedDir + "Ch33.fbx", "Background2", new Vector3(6.5f, 0f, 12f), bgAC);
+        var bg2 = MakeCharacter(PedDir + "Ch33.fbx", "Background2", new Vector3(-2.5f, 0f, -7f), bgAC);
         ApplyExtractedTextures(bg2, "Ch33");
         var bg2Follower = bg2.AddComponent<WaypointFollower>();
         bg2Follower.animator = bg2.GetComponent<Animator>();
-        bg2Follower.speed = 1.4f; bg2Follower.loop = true;
+        bg2Follower.speed = 1.5f; bg2Follower.loop = false;
 
         // ---------- Paths ----------
         var paths = new GameObject("Paths").transform;
@@ -212,15 +213,15 @@ public static class Scenario4Builder
         witnessFollower.waypoints = MakePath("Witness", new[] {
             new Vector3(-3.5f,0f,5f), new Vector3(-4f,0f,8.5f) }, paths);
         bg1Follower.waypoints = MakePath("BG1", new[] {
-            new Vector3(5f,0f,-9f), new Vector3(5f,0f,12f) }, paths);
+            new Vector3(-5f,0f,-6f), new Vector3(-5f,0f,11f) }, paths);
         bg2Follower.waypoints = MakePath("BG2", new[] {
-            new Vector3(6.5f,0f,12f), new Vector3(6.5f,0f,-9f) }, paths);
+            new Vector3(-2.5f,0f,-7f), new Vector3(-2.5f,0f,12f) }, paths);
 
         // Face start directions.
         kate.transform.rotation = Quaternion.LookRotation(Vector3.forward);
         witness.transform.rotation = Quaternion.LookRotation(Vector3.forward);
         bg1.transform.rotation = Quaternion.LookRotation(Vector3.forward);
-        bg2.transform.rotation = Quaternion.LookRotation(Vector3.back);
+        bg2.transform.rotation = Quaternion.LookRotation(Vector3.forward);
 
         // ---------- Hero tree (physics) ----------
         var tree = new GameObject("HeroTree");
@@ -299,7 +300,8 @@ public static class Scenario4Builder
         var treeFall = tree.AddComponent<TreeFallController>();
         treeFall.body = rb;
         treeFall.hinge = hinge;
-        treeFall.toppleTorque = 500f;
+        treeFall.toppleTorque = 220f;   // gentle nudge; gravity does the rest (less violent → less bounce)
+        treeFall.settleDelay = 3f;      // freeze after it lands so it never bounces
         treeFall.torqueAxisLocal = new Vector3(-1f, 0f, 0f); // tips top toward -z (down the path onto Kate)
         canopyTrigger.controller = treeFall;
 
@@ -744,33 +746,37 @@ public static class Scenario4Builder
     /// <summary>Creates a small dark phone cuboid parented to the witness's right hand bone, hidden by default.</summary>
     static GameObject MakePhoneProp(GameObject witness)
     {
-        // Parent the phone at the EAR (head bone), not a hand — then it's always visibly
-        // "held to his ear, on a call" no matter which hand the Mixamo clip raises.
+        // The PhoneCall clip raises the RIGHT hand to the ear (verified). Parent the phone to
+        // the right hand, offset out of the wrist toward the fingers so it's HELD (not buried
+        // inside the hand mesh). It then rides the hand up to the ear during the call.
         var anim = witness.GetComponent<Animator>();
-        Transform head = (anim != null && anim.avatar != null && anim.isHuman)
-            ? anim.GetBoneTransform(HumanBodyBones.Head) : null;
-        if (head == null) head = FindDeep(witness.transform, "mixamorig:Head");
-        if (head == null) head = FindDeepContains(witness.transform, "head");
-        if (head == null) { Debug.LogWarning("[Scenario4Builder] Head bone not found; no phone prop."); return null; }
+        Transform hand = (anim != null && anim.avatar != null && anim.isHuman)
+            ? anim.GetBoneTransform(HumanBodyBones.RightHand) : null;
+        if (hand == null) hand = FindDeep(witness.transform, "mixamorig:RightHand");
+        if (hand == null) hand = FindDeepContains(witness.transform, "righthand");
+        if (hand == null) { Debug.LogWarning("[Scenario4Builder] Right-hand bone not found; no phone prop."); return null; }
+
+        // Direction from the wrist toward the finger bones (so we place the phone in the palm).
+        Vector3 fingerDir = witness.transform.up;
+        if (hand.childCount > 0)
+        {
+            Vector3 avg = Vector3.zero; int n = 0;
+            foreach (Transform c in hand) { avg += c.position; n++; }
+            if (n > 0) { avg /= n; var d = avg - hand.position; if (d.sqrMagnitude > 1e-6f) fingerDir = d.normalized; }
+        }
 
         var phone = GameObject.CreatePrimitive(PrimitiveType.Cube);
         phone.name = "Phone";
-        phone.transform.SetParent(head, false);
-        // Place at the witness's right ear (he faces +z at build → right = +x), then it
-        // rides the head bone. Offsets use the witness root axes for predictable placement.
-        Vector3 earWorld = head.position
-            + witness.transform.right * 0.085f
-            + witness.transform.up * 0.04f
-            - witness.transform.forward * 0.015f;   // toward the ear, not the cheek
-        phone.transform.position = earWorld;
-        phone.transform.rotation = witness.transform.rotation;
-        // World size ~0.09 x 0.17 x 0.016 m regardless of bone scale.
-        Vector3 ls = head.lossyScale;
-        Vector3 want = new Vector3(0.016f, 0.17f, 0.09f); // thin, tall, held flat to the ear
+        phone.transform.SetParent(hand, false);
+        phone.transform.position = hand.position + fingerDir * 0.075f;   // in the palm / fingers
+        phone.transform.rotation = Quaternion.LookRotation(fingerDir, witness.transform.forward);
+        // World size ~0.085 x 0.16 x 0.014 m (phone-shaped), regardless of bone scale.
+        Vector3 ls = phone.transform.lossyScale; // current world scale of the unit cube under the hand
+        Vector3 want = new Vector3(0.085f, 0.16f, 0.014f);
         phone.transform.localScale = new Vector3(
-            want.x / Mathf.Max(Mathf.Abs(ls.x), 1e-4f),
-            want.y / Mathf.Max(Mathf.Abs(ls.y), 1e-4f),
-            want.z / Mathf.Max(Mathf.Abs(ls.z), 1e-4f));
+            phone.transform.localScale.x * want.x / Mathf.Max(Mathf.Abs(ls.x), 1e-4f),
+            phone.transform.localScale.y * want.y / Mathf.Max(Mathf.Abs(ls.y), 1e-4f),
+            phone.transform.localScale.z * want.z / Mathf.Max(Mathf.Abs(ls.z), 1e-4f));
         Object.DestroyImmediate(phone.GetComponent<Collider>());
         var pmat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         pmat.SetColor("_BaseColor", new Color(0.03f, 0.03f, 0.04f));
@@ -782,6 +788,29 @@ public static class Scenario4Builder
         phone.GetComponent<MeshRenderer>().sharedMaterial = pmat;
         phone.SetActive(false);
         return phone;
+    }
+
+    /// <summary>Samples the PhoneCall clip to report which hand the witness raises (so the phone goes in it).</summary>
+    [MenuItem("Tools/Scenario4/Diagnose Call Hand")]
+    public static void DiagnoseCallHand()
+    {
+        var witness = GameObject.Find("Witness");
+        if (witness == null) { Debug.LogError("[Diagnose] No 'Witness' in scene — build first."); return; }
+        var anim = witness.GetComponent<Animator>();
+        AnimationClip clip = null;
+        foreach (var a in AssetDatabase.LoadAllAssetsAtPath("Assets/Animations/Mixamo/PhoneCall.fbx"))
+            if (a is AnimationClip c && !c.name.StartsWith("__preview")) clip = c;
+        if (clip == null || anim == null) { Debug.LogError("[Diagnose] Missing clip or animator."); return; }
+        var lh = anim.GetBoneTransform(HumanBodyBones.LeftHand);
+        var rh = anim.GetBoneTransform(HumanBodyBones.RightHand);
+        if (lh == null || rh == null) { Debug.LogError("[Diagnose] Hand bones not found."); return; }
+        UnityEditor.AnimationMode.StartAnimationMode();
+        UnityEditor.AnimationMode.BeginSampling();
+        UnityEditor.AnimationMode.SampleAnimationClip(witness, clip, clip.length * 0.6f);
+        UnityEditor.AnimationMode.EndSampling();
+        float lhy = lh.position.y, rhy = rh.position.y;
+        UnityEditor.AnimationMode.StopAnimationMode();
+        Debug.Log($"[Diagnose] PhoneCall @0.6: LeftHand.y={lhy:F2} RightHand.y={rhy:F2} → phone hand = {(lhy > rhy ? "LEFT" : "RIGHT")}");
     }
 
     /// <summary>
