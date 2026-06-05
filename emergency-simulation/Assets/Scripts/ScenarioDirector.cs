@@ -183,9 +183,7 @@ namespace EmergencySim
             if (rescueChannel) rescueChannel.Raise(patientPos);
             Debug.Log($"[ScenarioDirector] Sequence complete — handed off to rescue at {patientPos:F2}.");
 
-            // Calm final state: stop the background pedestrians (they settle to Idle).
-            if (backgroundFollowers != null)
-                foreach (var f in backgroundFollowers) if (f) f.Halt();
+            // (Background pedestrians keep walking — not halted — so the street stays alive.)
 
             _running = false;
         }

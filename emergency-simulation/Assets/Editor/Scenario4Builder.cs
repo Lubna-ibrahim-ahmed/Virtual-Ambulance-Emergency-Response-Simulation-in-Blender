@@ -19,7 +19,7 @@ public static class Scenario4Builder
     // Kate walks the LEFT SIDEWALK (x≈-5.5, where the street trees are — not the road at x≈0).
     // The hero tree stands on the sidewalk AHEAD of her and topples back DOWN the path toward
     // her, so the long trunk lands ahead (+z, past her) and only the wide canopy comes onto her.
-    static readonly Vector3 TreeBase = new Vector3(-6.5f, 0f, 13f); // short trunk; brought close so the big canopy lands ON Kate (z~9)
+    static readonly Vector3 TreeBase = new Vector3(-6.5f, 0f, 14.6f); // canopy lands on Kate's upper body; her legs stay visible toward the road
     static readonly Vector3 KateStop = new Vector3(-6.5f, 0f, 9f);
 
     const string ModelDir = "Assets/Models/";
@@ -180,7 +180,7 @@ public static class Scenario4Builder
 
         // Witness (textured pedestrian Ch01) — stands on the curb/road near the accident, watching.
         // NOTE: Ch16/Chad is intentionally NOT in this scene — he's the paramedic, saved for the rescue.
-        var witness = MakeCharacter(PedDir + "Ch01.fbx", "Witness", new Vector3(-3.5f, 0f, 5f), witnessAC);
+        var witness = MakeCharacter(PedDir + "Ch01.fbx", "Witness", new Vector3(-3.5f, 0f, -7f), witnessAC);
         ApplyExtractedTextures(witness, "Ch01");
         var witnessAnim = witness.GetComponent<Animator>();
         var witnessFollower = witness.AddComponent<WaypointFollower>();
@@ -210,12 +210,14 @@ public static class Scenario4Builder
         var paths = new GameObject("Paths").transform;
         kateFollower.waypoints = MakePath("Kate", new[] {
             new Vector3(-6.5f,0f,-9f), new Vector3(-6.5f,0f,-3f), new Vector3(-6.5f,0f,3f), KateStop }, paths);
+        // Witness walks up from far back so he ARRIVES as the tree falls (comes to see it).
         witnessFollower.waypoints = MakePath("Witness", new[] {
-            new Vector3(-3.5f,0f,5f), new Vector3(-4f,0f,8.5f) }, paths);
+            new Vector3(-3.5f,0f,-7f), new Vector3(-4f,0f,8.5f) }, paths);
+        // Background pedestrians walk a long lane (+z to 30) so they KEEP walking, never stop.
         bg1Follower.waypoints = MakePath("BG1", new[] {
-            new Vector3(-5f,0f,-6f), new Vector3(-5f,0f,11f) }, paths);
+            new Vector3(-5f,0f,-6f), new Vector3(-5f,0f,30f) }, paths);
         bg2Follower.waypoints = MakePath("BG2", new[] {
-            new Vector3(-2.5f,0f,-7f), new Vector3(-2.5f,0f,12f) }, paths);
+            new Vector3(-2.5f,0f,-7f), new Vector3(-2.5f,0f,30f) }, paths);
 
         // Face start directions.
         kate.transform.rotation = Quaternion.LookRotation(Vector3.forward);
@@ -442,11 +444,11 @@ public static class Scenario4Builder
         sTwo.position = new Vector3(1.5f, 3f, 4f);
         sTwo.LookAt(new Vector3(-5.2f, 0.9f, 8.9f));
 
-        // 4: PHONE — frontal close-up on the witness so the lit phone reads (either hand)
+        // 4: FINAL — both Kate (lying by the fallen tree) and the witness (on the phone) in frame
         var sPhone = new GameObject("Shot5_PhoneCloseup").transform;
         sPhone.SetParent(shotsParent);
-        sPhone.position = new Vector3(-4f, 1.62f, 10.6f);
-        sPhone.LookAt(new Vector3(-4f, 1.55f, 8.5f));
+        sPhone.position = new Vector3(1.0f, 2.2f, 4.2f);
+        sPhone.LookAt(new Vector3(-5.5f, 0.4f, 8f));
 
         var camDir = camGo.AddComponent<CameraDirector>();
         camDir.cam = cam;
