@@ -160,22 +160,22 @@ namespace EmergencySim
             Debug.Log($"[Director] Impact phase done (treeHit={_treeHit}) → knockdown");
             if (!_treeHit && kateVictim) kateVictim.Knockdown();
 
-            // Hold on the impact, then Beat 2 — KATE DOWN.
-            yield return new WaitForSeconds(1.5f);
-            if (cameraDirector) cameraDirector.Snap(2);
-            yield return new WaitForSeconds(2f);
-
-            // Beat 3 — WITNESS reacts + calls 911.
+            // Brief beat on the impact, then cut to the witness — he reacts and calls quickly.
+            yield return new WaitForSeconds(1.2f);
             Debug.Log("[Director] Cut to witness → ReactAndCall");
-            if (cameraDirector) cameraDirector.Snap(3);
+            if (cameraDirector) cameraDirector.Snap(2);     // WITNESS reacts
             if (witness) witness.ReactAndCall();
 
-            // Beat 4 — PHONE: push in to the close-up partway through the call, then hand off.
+            // After his reaction, the TWO-SHOT showing both him and Kate.
+            yield return new WaitForSeconds(1.8f);
+            if (cameraDirector) cameraDirector.Snap(3);     // BOTH witness + Kate
+
+            // Push in to the phone close-up partway through the call, then hand off.
             float phoneT = 0f; bool phoneCut = false;
             while (!_callDone)
             {
                 phoneT += Time.deltaTime;
-                if (!phoneCut && phoneT > 3.5f) { if (cameraDirector) cameraDirector.Snap(4); phoneCut = true; }
+                if (!phoneCut && phoneT > 2.5f) { if (cameraDirector) cameraDirector.Snap(4); phoneCut = true; }
                 yield return null;
             }
 

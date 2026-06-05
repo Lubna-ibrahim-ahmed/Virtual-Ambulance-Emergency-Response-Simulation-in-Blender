@@ -428,27 +428,27 @@ public static class Scenario4Builder
         sFall.position = new Vector3(-2.5f, 2.0f, 11.5f);
         sFall.LookAt(new Vector3(-6.5f, 2.4f, 10.3f));
 
-        // 2: KATE DOWN — the accident; Kate prone with the tree on her
-        var sDown = new GameObject("Shot3_KateDown").transform;
-        sDown.SetParent(shotsParent);
-        sDown.position = new Vector3(-2.5f, 2.3f, 5.5f);
-        sDown.LookAt(new Vector3(-6.5f, 0.6f, 9.3f));
-
-        // 3: WITNESS — reacting + calling 911, accident visible behind
-        var sWit = new GameObject("Shot4_Witness").transform;
+        // 2: WITNESS — reacting + starting the call, accident visible behind
+        var sWit = new GameObject("Shot3_Witness").transform;
         sWit.SetParent(shotsParent);
         sWit.position = new Vector3(0f, 2f, 6f);
         sWit.LookAt(new Vector3(-4f, 1.45f, 8.5f));
 
-        // 4: PHONE — close on the witness + lit phone (from his right side)
+        // 3: TWO-SHOT — BOTH the witness (near) and Kate under the tree (far) in one frame
+        var sTwo = new GameObject("Shot4_TwoShot").transform;
+        sTwo.SetParent(shotsParent);
+        sTwo.position = new Vector3(1.5f, 3f, 4f);
+        sTwo.LookAt(new Vector3(-5.2f, 0.9f, 8.9f));
+
+        // 4: PHONE — frontal close-up on the witness so the lit phone reads (either hand)
         var sPhone = new GameObject("Shot5_PhoneCloseup").transform;
         sPhone.SetParent(shotsParent);
-        sPhone.position = new Vector3(-1.8f, 1.62f, 8.4f);
-        sPhone.LookAt(new Vector3(-4f, 1.55f, 8.4f));
+        sPhone.position = new Vector3(-4f, 1.62f, 10.6f);
+        sPhone.LookAt(new Vector3(-4f, 1.55f, 8.5f));
 
         var camDir = camGo.AddComponent<CameraDirector>();
         camDir.cam = cam;
-        camDir.shots = new[] { sWalk, sFall, sDown, sWit, sPhone };
+        camDir.shots = new[] { sWalk, sFall, sWit, sTwo, sPhone };
         camGo.transform.SetPositionAndRotation(sWalk.position, sWalk.rotation);
 
         // ---------- Rescue channel + stub ----------
@@ -744,31 +744,40 @@ public static class Scenario4Builder
     /// <summary>Creates a small dark phone cuboid parented to the witness's right hand bone, hidden by default.</summary>
     static GameObject MakePhoneProp(GameObject witness)
     {
-        Transform hand = null;
+        // Parent the phone at the EAR (head bone), not a hand — then it's always visibly
+        // "held to his ear, on a call" no matter which hand the Mixamo clip raises.
         var anim = witness.GetComponent<Animator>();
-        if (anim != null && anim.avatar != null && anim.isHuman)
-            hand = anim.GetBoneTransform(HumanBodyBones.RightHand);
-        if (hand == null) hand = FindDeep(witness.transform, "mixamorig:RightHand");
-        if (hand == null) hand = FindDeepContains(witness.transform, "righthand");
-        if (hand == null) { Debug.LogWarning("[Scenario4Builder] Right-hand bone not found; no phone prop."); return null; }
+        Transform head = (anim != null && anim.avatar != null && anim.isHuman)
+            ? anim.GetBoneTransform(HumanBodyBones.Head) : null;
+        if (head == null) head = FindDeep(witness.transform, "mixamorig:Head");
+        if (head == null) head = FindDeepContains(witness.transform, "head");
+        if (head == null) { Debug.LogWarning("[Scenario4Builder] Head bone not found; no phone prop."); return null; }
+
         var phone = GameObject.CreatePrimitive(PrimitiveType.Cube);
         phone.name = "Phone";
-        phone.transform.SetParent(hand, false);
-        phone.transform.localPosition = Vector3.zero;
-        phone.transform.localRotation = Quaternion.identity;
-        // Compensate for the bone's world scale so the phone is ~0.09 x 0.18 x 0.016 m in world space.
-        Vector3 ls = hand.lossyScale;
+        phone.transform.SetParent(head, false);
+        // Place at the witness's right ear (he faces +z at build → right = +x), then it
+        // rides the head bone. Offsets use the witness root axes for predictable placement.
+        Vector3 earWorld = head.position
+            + witness.transform.right * 0.085f
+            + witness.transform.up * 0.04f
+            - witness.transform.forward * 0.015f;   // toward the ear, not the cheek
+        phone.transform.position = earWorld;
+        phone.transform.rotation = witness.transform.rotation;
+        // World size ~0.09 x 0.17 x 0.016 m regardless of bone scale.
+        Vector3 ls = head.lossyScale;
+        Vector3 want = new Vector3(0.016f, 0.17f, 0.09f); // thin, tall, held flat to the ear
         phone.transform.localScale = new Vector3(
-            0.09f / Mathf.Max(Mathf.Abs(ls.x), 1e-4f),
-            0.18f / Mathf.Max(Mathf.Abs(ls.y), 1e-4f),
-            0.016f / Mathf.Max(Mathf.Abs(ls.z), 1e-4f));
+            want.x / Mathf.Max(Mathf.Abs(ls.x), 1e-4f),
+            want.y / Mathf.Max(Mathf.Abs(ls.y), 1e-4f),
+            want.z / Mathf.Max(Mathf.Abs(ls.z), 1e-4f));
         Object.DestroyImmediate(phone.GetComponent<Collider>());
         var pmat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        pmat.SetColor("_BaseColor", new Color(0.04f, 0.04f, 0.05f));
+        pmat.SetColor("_BaseColor", new Color(0.03f, 0.03f, 0.04f));
         pmat.SetFloat("_Smoothness", 0.6f);
-        // Lit screen glow so the phone reads clearly at night (sells "making a call").
+        // Bright lit screen so the phone unmistakably reads at night.
         pmat.EnableKeyword("_EMISSION");
-        pmat.SetColor("_EmissionColor", new Color(0.35f, 0.55f, 0.95f) * 2f);
+        pmat.SetColor("_EmissionColor", new Color(0.4f, 0.6f, 1f) * 1.8f);
         pmat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
         phone.GetComponent<MeshRenderer>().sharedMaterial = pmat;
         phone.SetActive(false);

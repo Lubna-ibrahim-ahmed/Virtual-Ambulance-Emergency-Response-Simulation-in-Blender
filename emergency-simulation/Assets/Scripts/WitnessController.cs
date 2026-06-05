@@ -19,7 +19,7 @@ namespace EmergencySim
         public string shockTrigger = "Shock";
         public string phoneTrigger = "PhoneCall";
         [Tooltip("Seconds of shock reaction before raising the phone.")]
-        public float shockDuration = 2.5f;
+        public float shockDuration = 1.2f;
         [Tooltip("Seconds on the phone before the 911 call is considered complete.")]
         public float callDuration = 6f;
 
@@ -45,7 +45,7 @@ namespace EmergencySim
             yield return new WaitForSeconds(shockDuration);
 
             if (animator) animator.SetTrigger(phoneTrigger);
-            if (phoneProp) phoneProp.SetActive(true);
+            if (phoneProp) { phoneProp.SetActive(true); Debug.Log("[Witness] phone prop ON"); }
             yield return new WaitForSeconds(callDuration);
 
             FinishCall(); // raises the handoff exactly once
