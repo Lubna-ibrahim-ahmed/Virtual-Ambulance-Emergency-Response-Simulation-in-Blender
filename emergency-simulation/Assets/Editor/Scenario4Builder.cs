@@ -19,7 +19,7 @@ public static class Scenario4Builder
     // Kate walks the LEFT SIDEWALK (x≈-5.5, where the street trees are — not the road at x≈0).
     // The hero tree stands on the sidewalk AHEAD of her and topples back DOWN the path toward
     // her, so the long trunk lands ahead (+z, past her) and only the wide canopy comes onto her.
-    static readonly Vector3 TreeBase = new Vector3(-6.5f, 0f, 18f); // canopy lands ~z=10, near-edge over Kate (z=9)
+    static readonly Vector3 TreeBase = new Vector3(-6.5f, 0f, 13f); // short trunk; brought close so the big canopy lands ON Kate (z~9)
     static readonly Vector3 KateStop = new Vector3(-6.5f, 0f, 9f);
 
     const string ModelDir = "Assets/Models/";
@@ -128,6 +128,43 @@ public static class Scenario4Builder
         }
         Debug.Log($"[Scenario4Builder] Environment obstacle colliders: {colliders}");
 
+        // Clear the tree's fall corridor of scenery (lamp posts, signs, env trees) so the
+        // hero tree lands on clean sidewalk instead of "falling on a pillar". Keep buildings.
+        int cleared = 0; var clearedNames = new System.Text.StringBuilder();
+        foreach (Transform t in env.transform)
+        {
+            if (t.name.StartsWith("Bldg")) continue;
+            var rr = t.GetComponent<Renderer>();
+            Vector3 pivot = t.position;
+            Vector3 bc = rr != null ? rr.bounds.center : pivot;
+            bool inCorridor =
+                (pivot.x > -8f && pivot.x < -4.6f && pivot.z > 7.5f && pivot.z < 18.5f) ||
+                (bc.x > -8f && bc.x < -4.6f && bc.z > 7.5f && bc.z < 18.5f);
+            if (inCorridor)
+            {
+                t.gameObject.SetActive(false);
+                cleared++;
+                if (clearedNames.Length < 300) clearedNames.Append(t.name).Append(' ');
+            }
+        }
+        Debug.Log($"[Scenario4Builder] Cleared {cleared} scenery objects from the fall corridor: {clearedNames}");
+
+        // Wet look (rainy night): instance each unique env material once with a glossy sheen.
+        var wetMap = new System.Collections.Generic.Dictionary<Material, Material>();
+        foreach (var r in env.GetComponentsInChildren<Renderer>())
+        {
+            var src = r.sharedMaterial;
+            if (src == null) continue;
+            if (!wetMap.TryGetValue(src, out var wet))
+            {
+                wet = new Material(src);
+                if (wet.HasProperty("_Smoothness")) wet.SetFloat("_Smoothness", 0.55f);
+                if (wet.HasProperty("_Metallic")) wet.SetFloat("_Metallic", 0.0f);
+                wetMap[src] = wet;
+            }
+            r.sharedMaterial = wet;
+        }
+
         // ---------- Characters ----------
         // Kate (Ch21) — the victim, walking the LEFT SIDEWALK (x≈-5.5)
         var kate = MakeCharacter(ModelDir + "Ch21.fbx", "Kate", new Vector3(-6.5f, 0f, -9f), kateAC);
@@ -195,52 +232,62 @@ public static class Scenario4Builder
 
         var barkMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         barkMat.SetColor("_BaseColor", new Color(0.33f, 0.22f, 0.12f));
+        barkMat.SetFloat("_Smoothness", 0.05f);   // matte bark, not shiny
         var leafMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         leafMat.SetColor("_BaseColor", new Color(0.16f, 0.34f, 0.14f));
+        leafMat.SetFloat("_Smoothness", 0.15f);
 
+        const float trunkH = 4.5f;   // short trunk
         var trunk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         trunk.name = "Trunk";
         trunk.transform.SetParent(tree.transform);
-        trunk.transform.localPosition = new Vector3(0f, 4f, 0f);
-        trunk.transform.localScale = new Vector3(0.6f, 4f, 0.6f);
+        trunk.transform.localPosition = new Vector3(0f, trunkH * 0.5f, 0f);
+        trunk.transform.localScale = new Vector3(0.6f, trunkH * 0.5f, 0.6f); // cylinder is 2 tall → *H/2 = H
         Object.DestroyImmediate(trunk.GetComponent<Collider>());
         var trunkCol = trunk.AddComponent<CapsuleCollider>();
         trunkCol.direction = 1; trunkCol.height = 2f; trunkCol.radius = 0.5f;
         trunk.GetComponent<MeshRenderer>().sharedMaterial = barkMat;
 
-        // Bubbly canopy — a cluster of overlapping foliage spheres (like the env street trees),
-        // not one smooth ball. Parent group at the trunk top so it topples with the tree.
+        // Cone-shaped canopy — rings of foliage bubbles, wide at the base tapering to a point
+        // (like the stylised street trees). Parented at the trunk top so it topples with the tree.
         var canopy = new GameObject("Canopy");
         canopy.transform.SetParent(tree.transform);
-        canopy.transform.localPosition = new Vector3(0f, 8f, 0f);
-        // Tighter, smaller bubbles — a compact canopy on the scale of the street trees.
-        var bubbles = new[] {
-            new Vector4( 0.0f,  0.15f,  0.0f, 1.3f),
-            new Vector4( 0.6f, -0.10f,  0.3f, 1.0f),
-            new Vector4(-0.6f, -0.10f, -0.3f, 1.05f),
-            new Vector4( 0.3f,  0.05f, -0.6f, 0.95f),
-            new Vector4(-0.3f,  0.10f,  0.6f, 1.0f),
-            new Vector4( 0.1f,  0.65f, -0.1f, 0.9f),
+        canopy.transform.localPosition = new Vector3(0f, trunkH, 0f);
+        // Big dense cone: stacked rings of overlapping bubbles, wide at the base tapering
+        // to a point. (y, ringRadius, count, bubbleScale)
+        var rings = new[] {
+            new Vector4(0.4f, 0.0f, 1f, 2.1f),    // core fills the centre (no gaps)
+            new Vector4(0.0f, 1.0f, 8f, 1.25f),   // wide bottom ring
+            new Vector4(0.8f, 0.78f, 6f, 1.15f),
+            new Vector4(1.5f, 0.55f, 5f, 1.05f),
+            new Vector4(2.2f, 0.32f, 3f, 0.9f),
+            new Vector4(2.9f, 0.0f, 1f, 0.72f),   // apex point
         };
-        foreach (var b in bubbles)
+        foreach (var ring in rings)
         {
-            var bub = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            bub.name = "Foliage";
-            bub.transform.SetParent(canopy.transform);
-            bub.transform.localPosition = new Vector3(b.x, b.y, b.z);
-            bub.transform.localScale = new Vector3(b.w, b.w, b.w);
-            Object.DestroyImmediate(bub.GetComponent<Collider>());
-            bub.GetComponent<MeshRenderer>().sharedMaterial = leafMat;
+            int count = Mathf.RoundToInt(ring.z);
+            for (int i = 0; i < count; i++)
+            {
+                float ang = count > 1 ? i * 2f * Mathf.PI / count : 0f;
+                var bub = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                bub.name = "Foliage";
+                bub.transform.SetParent(canopy.transform);
+                bub.transform.localPosition = new Vector3(Mathf.Cos(ang) * ring.y, ring.x, Mathf.Sin(ang) * ring.y);
+                bub.transform.localScale = new Vector3(ring.w, ring.w, ring.w);
+                Object.DestroyImmediate(bub.GetComponent<Collider>());
+                bub.GetComponent<MeshRenderer>().sharedMaterial = leafMat;
+            }
         }
-        // One solid collider for the whole canopy so it rests on the ground when fallen.
+        // One solid collider for the canopy so it rests on the ground when fallen.
         var canopySolid = canopy.AddComponent<SphereCollider>();
-        canopySolid.radius = 1.4f;
+        canopySolid.center = new Vector3(0f, 0.4f, 0f);
+        canopySolid.radius = 1.7f;
 
         var trigGo = new GameObject("ImpactTrigger");
         trigGo.transform.SetParent(tree.transform);
-        trigGo.transform.localPosition = new Vector3(0f, 5f, 0f);
+        trigGo.transform.localPosition = new Vector3(0f, trunkH * 0.5f, 0f);
         var trig = trigGo.AddComponent<CapsuleCollider>();
-        trig.direction = 1; trig.height = 11f; trig.radius = 1.4f; trig.isTrigger = true;
+        trig.direction = 1; trig.height = trunkH + 3f; trig.radius = 1.3f; trig.isTrigger = true;
         var canopyTrigger = trigGo.AddComponent<TreeCanopyTrigger>();
 
         var hinge = tree.AddComponent<HingeJoint>();
@@ -260,9 +307,9 @@ public static class Scenario4Builder
         // even when she lies slightly off the thin trunk's centerline.
         var canopyTrigGo = new GameObject("CanopyTrigger");
         canopyTrigGo.transform.SetParent(tree.transform);
-        canopyTrigGo.transform.localPosition = new Vector3(0f, 8f, 0f);
+        canopyTrigGo.transform.localPosition = new Vector3(0f, trunkH, 0f);
         var canopyTrigCol = canopyTrigGo.AddComponent<SphereCollider>();
-        canopyTrigCol.radius = 1.9f; canopyTrigCol.isTrigger = true;
+        canopyTrigCol.radius = 2.1f; canopyTrigCol.isTrigger = true;
         var canopyTrigger2 = canopyTrigGo.AddComponent<TreeCanopyTrigger>();
         canopyTrigger2.controller = treeFall;
 
@@ -380,17 +427,17 @@ public static class Scenario4Builder
         shot2.position = new Vector3(-2.5f, 1.5f, 5.5f);
         shot2.LookAt(new Vector3(-6.5f, 1.8f, 9.5f));
 
-        // 2: witness — medium on the pedestrian reacting / calling 911
+        // 2: witness — medium from the ROAD side (witness in front, accident behind, NOT occluded)
         var shot3 = new GameObject("Shot3_Witness").transform;
         shot3.SetParent(shotsParent);
-        shot3.position = new Vector3(0.5f, 1.9f, 6f);
-        shot3.LookAt(new Vector3(-4f, 1.5f, 8.5f));
+        shot3.position = new Vector3(0f, 2f, 6f);
+        shot3.LookAt(new Vector3(-4f, 1.45f, 8.5f));
 
-        // 3: witness alt — opposite/closer angle during the call, accident visible behind
+        // 3: witness phone close-up — from his right side (road side) so the lit phone reads clearly
         var shot4 = new GameObject("Shot4_WitnessAlt").transform;
         shot4.SetParent(shotsParent);
-        shot4.position = new Vector3(-8.5f, 1.7f, 11f);
-        shot4.LookAt(new Vector3(-4f, 1.4f, 8.5f));
+        shot4.position = new Vector3(-1.8f, 1.62f, 8.4f);
+        shot4.LookAt(new Vector3(-4f, 1.55f, 8.4f));
 
         var camDir = camGo.AddComponent<CameraDirector>();
         camDir.cam = cam;
@@ -702,16 +749,20 @@ public static class Scenario4Builder
         phone.transform.SetParent(hand, false);
         phone.transform.localPosition = Vector3.zero;
         phone.transform.localRotation = Quaternion.identity;
-        // Compensate for the bone's world scale so the phone is ~0.07 x 0.15 x 0.012 m in world space.
+        // Compensate for the bone's world scale so the phone is ~0.09 x 0.18 x 0.016 m in world space.
         Vector3 ls = hand.lossyScale;
         phone.transform.localScale = new Vector3(
-            0.07f / Mathf.Max(Mathf.Abs(ls.x), 1e-4f),
-            0.15f / Mathf.Max(Mathf.Abs(ls.y), 1e-4f),
-            0.012f / Mathf.Max(Mathf.Abs(ls.z), 1e-4f));
+            0.09f / Mathf.Max(Mathf.Abs(ls.x), 1e-4f),
+            0.18f / Mathf.Max(Mathf.Abs(ls.y), 1e-4f),
+            0.016f / Mathf.Max(Mathf.Abs(ls.z), 1e-4f));
         Object.DestroyImmediate(phone.GetComponent<Collider>());
         var pmat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         pmat.SetColor("_BaseColor", new Color(0.04f, 0.04f, 0.05f));
         pmat.SetFloat("_Smoothness", 0.6f);
+        // Lit screen glow so the phone reads clearly at night (sells "making a call").
+        pmat.EnableKeyword("_EMISSION");
+        pmat.SetColor("_EmissionColor", new Color(0.35f, 0.55f, 0.95f) * 2f);
+        pmat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
         phone.GetComponent<MeshRenderer>().sharedMaterial = pmat;
         phone.SetActive(false);
         return phone;
