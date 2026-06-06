@@ -3385,7 +3385,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &87018938
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -13714,7 +13713,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &301381869
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -14987,12 +14985,15 @@ MonoBehaviour:
   animator: {fileID: 329945516}
   follower: {fileID: 329945521}
   debrisBurst: {fileID: 815523664}
+  bloodDecal: {fileID: 0}
   fallTrigger: Fall
   fallSettleTime: 2.2
-  groundSlideX: 3
+  groundDrop: 0.5
   groundSlideZ: -1.6
-  finalY: 0.06
-  lieEuler: {x: -90, y: 0, z: 0}
+  lieState: Lie
+  liePitch: -90
+  groundY: 0
+  settleLerp: 0.45
 --- !u!136 &329945520
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -22081,6 +22082,103 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 511697206}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1001 &511889064
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2050810190543418208, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4838897208890068660, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
+      propertyPath: m_Name
+      value: ObjectiveTracker
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 60083a682f2ee4f67b8598efabd0066e, type: 3}
 --- !u!21 &514543826
 Material:
   serializedVersion: 8
@@ -32581,7 +32679,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &733128995
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -36390,7 +36487,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &802636828
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -48533,7 +48629,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &949446933
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -48964,7 +49059,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &952629163
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -64255,7 +64349,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &1177629811
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -84998,7 +85091,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &1519400045
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -93753,7 +93845,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 22
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &1658044920
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -108757,7 +108848,6 @@ MonoBehaviour:
   fallbackFreeze: 8
   commitAngle: 30
   settleLerp: 0.7
-  settledPitch: -72
 --- !u!59 &1909967443
 HingeJoint:
   m_ObjectHideFlags: 0
@@ -118541,3 +118631,4 @@ SceneRoots:
   - {fileID: 1579875503}
   - {fileID: 680140058}
   - {fileID: 1602682433}
+  - {fileID: 511889064}

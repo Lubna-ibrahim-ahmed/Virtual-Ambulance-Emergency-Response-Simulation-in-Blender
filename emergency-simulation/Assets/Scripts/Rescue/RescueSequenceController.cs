@@ -191,6 +191,7 @@ namespace EmergencySim
 
             // GATE 1 — wait for the player to dispatch the ambulance.
             yield return WaitForKey("Press E to dispatch the ambulance", Key.E);
+            CurrentBeat = "dispatch";   // E pressed — for the objective tracker
 
             // Witness (and any standing bystanders) will turn to watch the action.
             CaptureWatchers(patientFlat);
@@ -208,6 +209,7 @@ namespace EmergencySim
             CutTo(patientFlat + side * camWideSide + Vector3.up * (camWideUp * 0.55f) - fwd * 4f,
                   (startPos + stopPos) * 0.5f + Vector3.up * 1.5f);   // ARRIVAL WIDE — lower, tilted up
             yield return FollowPath(ambulanceFollower, driveSpeed, stopPos);
+            CurrentBeat = "arrived";    // ambulance on scene — for the objective tracker
             Debug.Log("[Rescue] Ambulance parked (rear toward patient).");
 
             // --- 2. Chad exits OUTSIDE the body and walks AROUND the vehicle to the patient. ---
