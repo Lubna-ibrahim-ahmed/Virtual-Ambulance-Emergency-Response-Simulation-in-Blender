@@ -248,13 +248,13 @@ public static class Scenario2Builder
         witnessCtrl.phoneProp = MakePhoneProp(witness);
 
         // Background pedestrians — walk the sidewalks (along Z), keep going.
-        var bg1 = MakeCharacter(PedDir + "Ch02.fbx", "Background1", new Vector3(10f, 0f, -12f), bgAC);
+        var bg1 = MakeCharacter(PedDir + "Ch02.fbx", "Background1", new Vector3(7f, 0f, -14f), bgAC);
         ApplyExtractedTextures(bg1, "Ch02");
         var bg1Follower = bg1.AddComponent<WaypointFollower>();
         bg1Follower.animator = bg1.GetComponent<Animator>();
         bg1Follower.speed = 1.4f;
 
-        var bg2 = MakeCharacter(PedDir + "Ch33.fbx", "Background2", new Vector3(-12f, 0f, 16f), bgAC);
+        var bg2 = MakeCharacter(PedDir + "Ch33.fbx", "Background2", new Vector3(-7f, 0f, 16f), bgAC);
         ApplyExtractedTextures(bg2, "Ch33");
         var bg2Follower = bg2.AddComponent<WaypointFollower>();
         bg2Follower.animator = bg2.GetComponent<Animator>();
@@ -265,8 +265,8 @@ public static class Scenario2Builder
         var kateWps = MakePath("Kate", new[] { KateStart, KateWalk, KateCurb, KateNearLane, KateImpact, KateCross }, paths);
         kateFollower.waypoints = kateWps;
         witnessFollower.waypoints = MakePath("Witness", new[] { witnessPos }, paths); // stays put, watching
-        bg1Follower.waypoints = MakePath("BG1", new[] { new Vector3(10f, 0f, -12f), new Vector3(10f, 0f, 28f) }, paths);
-        bg2Follower.waypoints = MakePath("BG2", new[] { new Vector3(-12f, 0f, 16f), new Vector3(-12f, 0f, -18f) }, paths);
+        bg1Follower.waypoints = MakePath("BG1", new[] { new Vector3(7f, 0f, -14f), new Vector3(7f, 0f, 26f) }, paths);
+        bg2Follower.waypoints = MakePath("BG2", new[] { new Vector3(-7f, 0f, 16f), new Vector3(-7f, 0f, -16f) }, paths);
 
         kate.transform.rotation = Quaternion.LookRotation((KateWalk - KateStart).normalized);
         witness.transform.rotation = Quaternion.LookRotation((KateImpact - witnessPos).normalized);
@@ -297,7 +297,7 @@ public static class Scenario2Builder
 
         // ---------- Camera shots (road runs along Z; car comes from the south, impact at (2.5,0,4)) ----------
         var shotsParent = new GameObject("CameraShots").transform;
-        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(-13f, 8.5f, 17f), new Vector3(-0.5f, 0.4f, -9f));
+        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(-7f, 9f, 17f), new Vector3(0f, 0.5f, -9f));
         var sImpact = MakeShot("Shot1_Impact", shotsParent, new Vector3(-5.5f, 1.8f, 1f), new Vector3(2.5f, 0.9f, 5f));
         var sWitness = MakeShot("Shot2_Witness", shotsParent, new Vector3(3f, 1.7f, 9.5f), new Vector3(6.3f, 1.4f, 6.5f));
         var sTwo = MakeShot("Shot3_TwoShot", shotsParent, new Vector3(-2f, 3f, 9.5f), new Vector3(4.2f, 0.5f, 5f));
