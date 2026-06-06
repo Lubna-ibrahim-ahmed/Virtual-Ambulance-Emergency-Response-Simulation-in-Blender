@@ -122,7 +122,8 @@ public static class Scenario2Builder
         env.transform.position = Vector3.zero;
         foreach (Transform t in env.transform)
             if (t.name.StartsWith("Bldg")) t.gameObject.AddComponent<BoxCollider>();
-        // Hide the environment's own crashed-car prop (base + cabin) so only our driveable copy shows.
+        // Clear the road for a clean path: hide the env's crashed-car prop AND the traffic
+        // cones / cone bases that clutter the lane.
         var envMfs = env.GetComponentsInChildren<MeshFilter>(true);
         Vector3 envCarC = Vector3.zero; bool foundEnvCar = false;
         foreach (var mfc in envMfs)
@@ -134,17 +135,25 @@ public static class Scenario2Builder
                 envCarC = rr != null ? rr.bounds.center : mfc.transform.position; foundEnvCar = true; break;
             }
         }
-        if (foundEnvCar)
-            foreach (var mfc in envMfs)
-            {
-                var rr = mfc.GetComponent<Renderer>();
-                if (rr == null) continue;
-                string nn = mfc.name.ToLower();
-                if (nn.Contains("cone") || nn.Contains("cylinder")) continue;
-                Vector3 c = rr.bounds.center;
-                if (Vector2.Distance(new Vector2(c.x, c.z), new Vector2(envCarC.x, envCarC.z)) <= 1.9f)
-                    mfc.gameObject.SetActive(false);
-            }
+        int clearedClutter = 0;
+        foreach (var mfc in envMfs)
+        {
+            var rr = mfc.GetComponent<Renderer>();
+            if (rr == null) continue;
+            string nn = mfc.name.ToLower();
+            string mn = mfc.sharedMesh != null ? mfc.sharedMesh.name.ToLower() : "";
+            bool isCone = nn.Contains("cone") || mn.Contains("cone");
+            Vector3 c = rr.bounds.center;
+            // Any small, short prop sitting in the lane (cones, bases, tips, markers) — clear it for
+            // a clean path. Tall lamp posts (big Y), buildings/trees (big), the road itself (big XZ),
+            // and the sidewalk hydrants (|x|>5.5) are all excluded by size/position.
+            bool isLaneClutter = rr.bounds.size.x < 0.7f && rr.bounds.size.z < 0.7f && rr.bounds.size.y < 0.85f &&
+                c.x > -5.5f && c.x < 5.5f && c.z > -22f && c.z < 4f;
+            bool isWreck = foundEnvCar &&
+                Vector2.Distance(new Vector2(c.x, c.z), new Vector2(envCarC.x, envCarC.z)) <= 2.6f;
+            if (isCone || isLaneClutter || isWreck) { mfc.gameObject.SetActive(false); clearedClutter++; }
+        }
+        Debug.Log($"[Scenario2Builder] Cleared {clearedClutter} cones / wreck pieces for a clean road.");
 
         // No custom road geometry — the action uses the Environment's existing street:
         // `Road` runs along Z (centre x=0, ~14 wide x..-7..+7, 60 long), curbs at x≈±6.1,
@@ -593,9 +602,9 @@ public static class Scenario2Builder
         // Lower body (hood/boot height) and a narrower greenhouse cabin set back a touch.
         Box("Car_Body", new Vector3(1.8f, 0.55f, 4.3f), new Vector3(0f, 0.62f, 0f), Vector3.zero, paint);
         Box("CarRoof",  new Vector3(1.55f, 0.6f, 1.95f), new Vector3(0f, 1.05f, -0.15f), Vector3.zero, paint);
-        // Slanted windshield (front) and rear window.
-        Box("Windshield", new Vector3(1.46f, 0.62f, 0.06f), new Vector3(0f, 1.0f, 0.92f), new Vector3(32f, 0f, 0f), glass);
-        Box("RearWindow", new Vector3(1.46f, 0.56f, 0.06f), new Vector3(0f, 1.0f, -1.15f), new Vector3(-34f, 0f, 0f), glass);
+        // Straight (vertical) windshield and rear window at the front/back of the cabin.
+        Box("Windshield", new Vector3(1.46f, 0.5f, 0.05f), new Vector3(0f, 1.05f, 0.82f), Vector3.zero, glass);
+        Box("RearWindow", new Vector3(1.46f, 0.45f, 0.05f), new Vector3(0f, 1.05f, -1.12f), Vector3.zero, glass);
 
         // Four wheels: cylinders laid on their side (axle along X), seated so they touch y=0.
         var ws = new List<Transform>();
