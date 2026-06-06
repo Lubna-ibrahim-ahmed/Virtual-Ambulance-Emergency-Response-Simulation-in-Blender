@@ -386,36 +386,35 @@ namespace EmergencySim
             Quaternion r0 = patient.rotation;
             Quaternion lie = Quaternion.Euler(patientLocalEuler);       // supine, face-up
             Quaternion r1 = anchor.rotation * lie;
-            // The character's pivot is at the feet, so offset along the deck to CENTER her body on it.
-            Vector3 target = anchor.TransformPoint(patientLocalOffset);
+
+            // Compute the FINAL centered + grounded world pose UP FRONT, then lerp straight to it —
+            // so there is NO end snap (the old code lerped to a pivot target, then jumped by the
+            // rig-aware centering, which is ~3.8 m for offset rigs like Character_Ch21). Measure the
+            // rendered bounds with the supine rotation applied, center the body on the mattress (X/Z)
+            // and rest its lowest point on the surface (Y); then restore the start pose for the lerp.
+            patient.rotation = r1;
+            if (pa != null) pa.Update(0f);
+            Bounds bb = RendererBounds(patient);
+            Vector3 finalPos = from
+                + new Vector3(anchor.position.x - bb.center.x, 0f, anchor.position.z - bb.center.z)
+                + Vector3.up * (surfaceY - bb.min.y);
+            patient.rotation = r0;   // restore for a continuous lerp
+
+            float dur = Mathf.Max(0.01f, liftDuration);
             float t = 0f;
-            while (t < liftDuration)
+            while (t < dur)
             {
                 t += Time.deltaTime;
-                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / liftDuration));
-                patient.position = Vector3.Lerp(from, target, k);
+                float k = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / dur));
+                patient.position = Vector3.Lerp(from, finalPos, k);
                 patient.rotation = Quaternion.Slerp(r0, r1, k);
                 yield return null;
             }
-            // Parent to the bed, aligned with its length, supine.
+            // Settle exactly on the bed (continuous — no jump), then parent keeping the world pose.
+            patient.position = finalPos;
+            patient.rotation = r1;
             patient.SetParent(anchor, true);
-            patient.localPosition = patientLocalOffset;
-            patient.localRotation = lie;
-            // Center the VISIBLE body on the mattress and rest it ON TOP — positioned by the rendered
-            // bounds, NOT the transform pivot. Some rigs (e.g. Character_Ch21) have their skeleton/Hips
-            // baked metres off their GameObject pivot, so pivot-based placement floats the body off the
-            // bed. X/Z: shift so the body's center sits over the mattress center (anchor). Y: lift so the
-            // lowest point meets the measured surface. Same measure-and-compensate idea as before, now in
-            // all three axes — harmless for aligned rigs (offset ~0), corrects offset rigs.
-            if (pa != null) pa.Update(0f);
-            Bounds b = RendererBounds(patient);
-            Vector3 fix = new Vector3(anchor.position.x - b.center.x, 0f, anchor.position.z - b.center.z);
-            patient.position += fix;
-            if (pa != null) pa.Update(0f);
-            b = RendererBounds(patient);
-            float delta = surfaceY - b.min.y;
-            patient.position += Vector3.up * delta;
-            Debug.Log($"[Rescue] Lift placement: centered body XZ by {fix.x:F2},{fix.z:F2} onto mattress; surface Y={surfaceY:F3}, raised +{delta:F3} to rest on top.");
+            Debug.Log($"[Rescue] Lift: smooth ground->bed over {dur:F2}s; body centered on mattress (surface Y={surfaceY:F3}).");
         }
 
         private static bool HasIdleState(Animator a)
