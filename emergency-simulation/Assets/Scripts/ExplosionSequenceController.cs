@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class ExplosionSequenceController : MonoBehaviour
 {
@@ -36,7 +37,9 @@ public class ExplosionSequenceController : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.X))
+        // Read X via the Input System (project runs with the Input System package active;
+        // the legacy UnityEngine.Input path throws under that handler). Works in Both mode too.
+        if (Keyboard.current != null && Keyboard.current.xKey.wasPressedThisFrame)
         {
             StartExplosion();
         }
