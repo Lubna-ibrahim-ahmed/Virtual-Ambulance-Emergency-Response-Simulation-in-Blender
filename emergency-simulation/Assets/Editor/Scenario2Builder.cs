@@ -4,6 +4,7 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.UI;
 using EmergencySim;
 
 /// <summary>
@@ -23,15 +24,15 @@ public static class Scenario2Builder
     // Kate walks SW_R (x≈-9.5) north, steps off the curb (x≈-6), and crosses east (+x). The car
     // drives NORTH (+z) up the FAR lane at x≈+2.5, approaching from the south — i.e. from Kate's
     // right as she crosses. She clears the empty near lane (x≈-2.5) and is hit in the far lane.
-    static readonly Vector3 KateStart    = new Vector3(-9.5f, 0f, -4f);  // SW_R sidewalk start
-    static readonly Vector3 KateWalk     = new Vector3(-9.5f, 0f, 3f);   // walks north along the sidewalk
-    static readonly Vector3 KateCurb     = new Vector3(-6.3f, 0f, 4f);   // steps off the curb
-    static readonly Vector3 KateNearLane = new Vector3(-2.5f, 0f, 4f);   // clears the empty near lane → launches the car
-    static readonly Vector3 KateImpact   = new Vector3(2.5f, 0f, 4f);    // FAR lane (where she's hit)
-    static readonly Vector3 KateCross    = new Vector3(5.5f, 0f, 4f);    // continues toward the east curb (she won't reach it)
-    static readonly Vector3 CarStart     = new Vector3(2.5f, 0f, -26f);  // car spawns to the SOUTH
+    static readonly Vector3 KateStart    = new Vector3(-9f, 0f, 0f);     // SW_R sidewalk start
+    static readonly Vector3 KateWalk     = new Vector3(-8.3f, 0f, 4f);   // walks north along the sidewalk
+    static readonly Vector3 KateCurb     = new Vector3(-6.3f, 0f, 4.5f); // steps off the curb
+    static readonly Vector3 KateNearLane = new Vector3(-2.5f, 0f, 4.5f); // clears the empty near lane → cut to impact cam
+    static readonly Vector3 KateImpact   = new Vector3(2.5f, 0f, 4.5f);  // FAR lane (where she's hit)
+    static readonly Vector3 KateCross    = new Vector3(6f, 0f, 4.5f);    // continues toward the east curb (she won't reach it)
+    static readonly Vector3 CarStart     = new Vector3(2.5f, 0f, -28f);  // car spawns far to the SOUTH (long visible approach)
     static readonly Vector3 CarEnd       = new Vector3(2.5f, 0f, 30f);   // drives NORTH up the far lane
-    static readonly Vector3 BrakeZonePos = new Vector3(2.5f, 0.6f, 0f);  // car slams brakes just south of the crossing
+    static readonly Vector3 BrakeZonePos = new Vector3(2.5f, 0.6f, -1f); // car brakes just south of the crossing
 
     static readonly Color CarBodyColor = new Color(0.62f, 0.13f, 0.12f); // red; debris pieces match this
 
@@ -190,7 +191,7 @@ public static class Scenario2Builder
 
         var carCtrl = carGo.AddComponent<CarController>();
         carCtrl.body = carRb;
-        carCtrl.cruiseSpeed = 9f;
+        carCtrl.cruiseSpeed = 4f;   // tuned so it reaches the impact point as Kate steps into the lane
         carCtrl.wheels = wheels;
         carCtrl.wheelSpinAxisLocal = Vector3.up;   // sedan wheels: cylinder axle = local Y → roll about it
         carCtrl.screech = screech;
@@ -217,7 +218,7 @@ public static class Scenario2Builder
         var kateAnim = kate.GetComponent<Animator>();
         var kateFollower = kate.AddComponent<WaypointFollower>();
         kateFollower.animator = kateAnim;
-        kateFollower.speed = 1.4f;
+        kateFollower.speed = 1.7f;   // brisk walk so the car can parallel her at a believable speed
         var kateVictim = kate.AddComponent<KateVictim>();
         kateVictim.animator = kateAnim;
         kateVictim.follower = kateFollower;
@@ -252,7 +253,8 @@ public static class Scenario2Builder
 
         // ---------- Paths ----------
         var paths = new GameObject("Paths").transform;
-        kateFollower.waypoints = MakePath("Kate", new[] { KateStart, KateWalk, KateCurb, KateNearLane, KateImpact, KateCross }, paths);
+        var kateWps = MakePath("Kate", new[] { KateStart, KateWalk, KateCurb, KateNearLane, KateImpact, KateCross }, paths);
+        kateFollower.waypoints = kateWps;
         witnessFollower.waypoints = MakePath("Witness", new[] { witnessPos }, paths); // stays put, watching
         bg1Follower.waypoints = MakePath("BG1", new[] { new Vector3(10f, 0f, -12f), new Vector3(10f, 0f, 28f) }, paths);
         bg2Follower.waypoints = MakePath("BG2", new[] { new Vector3(-12f, 0f, 16f), new Vector3(-12f, 0f, -18f) }, paths);
@@ -286,7 +288,7 @@ public static class Scenario2Builder
 
         // ---------- Camera shots (road runs along Z; car comes from the south, impact at (2.5,0,4)) ----------
         var shotsParent = new GameObject("CameraShots").transform;
-        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(-9f, 5.5f, 13f), new Vector3(3f, 0.7f, -4f));
+        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(-13f, 8.5f, 17f), new Vector3(-0.5f, 0.4f, -9f));
         var sImpact = MakeShot("Shot1_Impact", shotsParent, new Vector3(-5.5f, 1.8f, 1f), new Vector3(2.5f, 0.9f, 5f));
         var sWitness = MakeShot("Shot2_Witness", shotsParent, new Vector3(3f, 1.7f, 9.5f), new Vector3(6.3f, 1.4f, 6.5f));
         var sTwo = MakeShot("Shot3_TwoShot", shotsParent, new Vector3(-2f, 3f, 9.5f), new Vector3(4.2f, 0.5f, 5f));
@@ -321,8 +323,19 @@ public static class Scenario2Builder
         dir.cameraDirector = camDir;
         dir.rescueChannel = channel;
         dir.autoStartOnLoad = true;
-        dir.carLaunchWaypointIndex = 3;   // launch the car when Kate clears the near lane (waypoint 3)
-        dir.impactSafetyTimeout = 8f;     // window (from car launch) for the contact to fire before forcing it
+        dir.cameraImpactWaypointIndex = 3;  // cut wide → impact angle when Kate clears the near lane
+        dir.impactSafetyTimeout = 14f;      // window (from car launch) before forcing the hit
+
+        // ---------- Interactive start gate (UI + StartGate) ----------
+        var promptGo = MakeStartPrompt(cam);
+        var gateGo = new GameObject("StartGate");
+        var gate = gateGo.AddComponent<StartGate>();
+        gate.director = dir;
+        gate.car = carCtrl;
+        gate.kateFollower = kateFollower;
+        gate.curbWaypoint = kateWps[2];     // KateCurb (pre-crossing)
+        gate.impactPoint = kateWps[4];      // KateImpact
+        gate.prompt = promptGo;
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -416,6 +429,51 @@ public static class Scenario2Builder
         t.position = pos;
         t.LookAt(lookAt);
         return t;
+    }
+
+    // Centered screen-space overlay "Press D to start the car" prompt. Returns the Prompt object.
+    static GameObject MakeStartPrompt(Camera cam)
+    {
+        var canvasGo = new GameObject("StartGateUI");
+        var canvas = canvasGo.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100;
+        var scaler = canvasGo.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        canvasGo.AddComponent<GraphicRaycaster>();
+
+        var prompt = new GameObject("Prompt");
+        prompt.transform.SetParent(canvasGo.transform, false);
+        var prt = prompt.AddComponent<RectTransform>();
+        prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(0.5f, 0.5f);
+        prt.anchoredPosition = Vector2.zero;
+        prt.sizeDelta = new Vector2(840f, 150f);
+        var bg = prompt.AddComponent<Image>();
+        bg.color = new Color(0f, 0f, 0f, 0.55f);
+
+        var textGo = new GameObject("Text");
+        textGo.transform.SetParent(prompt.transform, false);
+        var trt = textGo.AddComponent<RectTransform>();
+        trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+        trt.offsetMin = trt.offsetMax = Vector2.zero;
+        var text = textGo.AddComponent<Text>();
+        text.text = "Press  D  to start the car";
+        text.alignment = TextAnchor.MiddleCenter;
+        text.color = Color.white;
+        text.fontSize = 48;
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        return prompt;
+    }
+
+    // Verification helper: simulate the D keypress (MCP can't send keyboard input to play mode).
+    [MenuItem("Tools/Scenario2/DEBUG - Press D (start car)")]
+    public static void DebugPressD()
+    {
+        var gate = Object.FindFirstObjectByType<StartGate>();
+        if (gate == null) { Debug.LogError("[Scenario2Builder] No StartGate in scene — enter Play after Build All."); return; }
+        gate.StartCar();
+        Debug.Log("[Scenario2Builder] DEBUG: simulated D — car started.");
     }
 
     // ---------- Car extraction ----------

@@ -41,6 +41,15 @@ namespace EmergencySim
             if (animator) animator.SetBool(walkBool, false);
         }
 
+        /// <summary>Continue from the current waypoint (after a Halt), without restarting the path.</summary>
+        public void Resume()
+        {
+            if (waypoints == null || waypoints.Length == 0) return;
+            if (_index < 0) _index = 0;
+            _moving = true;
+            if (animator) animator.SetBool(walkBool, true);
+        }
+
         private void Update()
         {
             if (!_moving || _index < 0 || _index >= waypoints.Length) return;

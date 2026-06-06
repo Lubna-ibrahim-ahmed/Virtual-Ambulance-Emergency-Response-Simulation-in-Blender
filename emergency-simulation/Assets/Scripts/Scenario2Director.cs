@@ -32,11 +32,12 @@ namespace EmergencySim
 
         [Header("Flow")]
         public bool autoStartOnLoad = true;
-        [Tooltip("Kate waypoint index whose arrival launches the car. -1 = launch the car at the start.")]
-        public int carLaunchWaypointIndex = 1;
+        [Tooltip("Kate waypoint index whose arrival cuts from the wide establishing shot to the impact angle.")]
+        public int cameraImpactWaypointIndex = 3;
         public float postImpactHold = 1.2f;
         public float twoShotDelay = 1.8f;
-        public float impactSafetyTimeout = 6f;
+        [Tooltip("Window (from the start) for the contact to fire before it's forced; covers the full parallel approach.")]
+        public float impactSafetyTimeout = 14f;
 
         private bool _running;
 
@@ -46,6 +47,7 @@ namespace EmergencySim
 
         // Beat flags set by named handlers.
         private bool _carLaunched;
+        private bool _cutImpactCam;
         private bool _hit;
         private bool _callDone;
         private bool _handedOff;
@@ -110,6 +112,7 @@ namespace EmergencySim
         {
             StopAllCoroutines();
             _carLaunched = false;
+            _cutImpactCam = false;
             _hit = false;
             _callDone = false;
             _handedOff = false;
@@ -135,26 +138,30 @@ namespace EmergencySim
         private IEnumerator RunSequence()
         {
             Debug.Log("[Scenario2] RunSequence START");
-            // Shot 0: wide establishing on the crossing.
+            // Shot 0: wide establishing — frames both Kate AND the approaching car.
             if (cameraDirector) cameraDirector.Snap(0);
 
-            // Everyone starts walking.
+            // Everyone moves from the start: Kate walks AND the car drives down the road in
+            // parallel, so the audience sees it approaching in the background during her walk.
             if (backgroundFollowers != null)
                 foreach (var f in backgroundFollowers) if (f) f.Begin();
             if (kateFollower) kateFollower.Begin();
 
-            // If the car launches at the very start, do it now.
-            if (carLaunchWaypointIndex < 0) LaunchCar();
-
-            // The impact can only happen once the car is driving, so start the safety guard from
-            // the LAUNCH (Kate's walk to the crossing can take longer than the impact window).
+            // The car does NOT start on its own — the StartGate (D key) calls LaunchCar(). Hold the
+            // wide establishing shot (Kate walking / waiting at the curb + the prompt) until then.
             while (!_carLaunched) yield return null;
+
+            // Once the car is driving, hold the wide shot through the approach; cut to the impact
+            // angle only as Kate reaches the car's lane. Guard the contact across the approach.
             float guard = 0f;
+            bool cut = false;
             while (!_hit && guard < impactSafetyTimeout)
             {
+                if (!cut && _cutImpactCam) { if (cameraDirector) cameraDirector.Snap(1); cut = true; }
                 guard += Time.deltaTime;
                 yield return null;
             }
+            if (!cut && cameraDirector) cameraDirector.Snap(1);
             Debug.Log($"[Scenario2] Impact phase done (hit={_hit}) → knockdown");
             if (!_hit && kateVictim) kateVictim.Knockdown();
 
@@ -184,18 +191,18 @@ namespace EmergencySim
             _running = false;
         }
 
-        private void LaunchCar()
+        /// <summary>Starts the car's existing approach. Called by the StartGate on the D keypress.</summary>
+        public void LaunchCar()
         {
             if (_carLaunched) return;
             _carLaunched = true;
-            if (cameraDirector) cameraDirector.Snap(1);     // cut to the approaching car
-            if (car) car.Begin();
+            if (car) car.Begin();     // start driving (camera stays on the wide shot)
         }
 
         // --- named beat handlers ---
         private void OnKateReachedIndex(int i)
         {
-            if (carLaunchWaypointIndex >= 0 && i == carLaunchWaypointIndex) LaunchCar();
+            if (i == cameraImpactWaypointIndex) _cutImpactCam = true;   // cut wide → impact angle
         }
         private void OnKatePathComplete()
         {
