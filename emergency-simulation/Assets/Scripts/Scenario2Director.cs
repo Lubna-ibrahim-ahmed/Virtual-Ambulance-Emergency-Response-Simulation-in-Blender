@@ -146,9 +146,11 @@ namespace EmergencySim
             // If the car launches at the very start, do it now.
             if (carLaunchWaypointIndex < 0) LaunchCar();
 
-            // Wait until Kate is hit (the car fires it) — with a safety fallback.
+            // The impact can only happen once the car is driving, so start the safety guard from
+            // the LAUNCH (Kate's walk to the crossing can take longer than the impact window).
+            while (!_carLaunched) yield return null;
             float guard = 0f;
-            while (!_hit && guard < impactSafetyTimeout + 6f)
+            while (!_hit && guard < impactSafetyTimeout)
             {
                 guard += Time.deltaTime;
                 yield return null;

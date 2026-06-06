@@ -20,20 +20,24 @@ public static class Scenario2Builder
     const string ChannelPath = "Assets/Scripts/Channels/RescueRequested.asset";
 
     // ---- Tunable layout (on the Environment's existing `Road`, which runs along Z) ----
-    // Kate walks SW_R (x≈-9.5) north, steps off the curb (x≈-6), and crosses east (+x) into the
-    // road. The car drives south (-z) down the lane at x≈-2.5; impact where her path meets it.
-    static readonly Vector3 KateStart   = new Vector3(-9.5f, 0f, -4f);  // SW_R sidewalk start
-    static readonly Vector3 KateWalk    = new Vector3(-9.5f, 0f, 3f);   // walks north along the sidewalk
-    static readonly Vector3 KateCurb    = new Vector3(-6.3f, 0f, 4f);   // steps off the curb → launches the car
-    static readonly Vector3 KateImpact  = new Vector3(-2.5f, 0f, 4f);   // car's lane (where she's hit)
-    static readonly Vector3 KateCross   = new Vector3(0.8f, 0f, 4f);    // continues across (she won't reach it)
-    static readonly Vector3 CarStart    = new Vector3(-2.5f, 0f, 28f);  // car spawns up the road (north)
-    static readonly Vector3 CarEnd       = new Vector3(-2.5f, 0f, -26f);// drives south, off-frame
-    static readonly Vector3 BrakeZonePos = new Vector3(-2.5f, 0.6f, 9f);// car slams brakes here (just N of the crossing)
+    // Kate walks SW_R (x≈-9.5) north, steps off the curb (x≈-6), and crosses east (+x). The car
+    // drives NORTH (+z) up the FAR lane at x≈+2.5, approaching from the south — i.e. from Kate's
+    // right as she crosses. She clears the empty near lane (x≈-2.5) and is hit in the far lane.
+    static readonly Vector3 KateStart    = new Vector3(-9.5f, 0f, -4f);  // SW_R sidewalk start
+    static readonly Vector3 KateWalk     = new Vector3(-9.5f, 0f, 3f);   // walks north along the sidewalk
+    static readonly Vector3 KateCurb     = new Vector3(-6.3f, 0f, 4f);   // steps off the curb
+    static readonly Vector3 KateNearLane = new Vector3(-2.5f, 0f, 4f);   // clears the empty near lane → launches the car
+    static readonly Vector3 KateImpact   = new Vector3(2.5f, 0f, 4f);    // FAR lane (where she's hit)
+    static readonly Vector3 KateCross    = new Vector3(5.5f, 0f, 4f);    // continues toward the east curb (she won't reach it)
+    static readonly Vector3 CarStart     = new Vector3(2.5f, 0f, -26f);  // car spawns to the SOUTH
+    static readonly Vector3 CarEnd       = new Vector3(2.5f, 0f, 30f);   // drives NORTH up the far lane
+    static readonly Vector3 BrakeZonePos = new Vector3(2.5f, 0.6f, 0f);  // car slams brakes just south of the crossing
 
-    // Car mesh fix-ups (tuned after a screenshot).
-    const float CarTargetLength = 4.4f;   // metres; scales the extracted mesh to match Kate
-    const float CarYawOffset = 0f;        // deg; align the car's nose to root +z (travel dir)
+    static readonly Color CarBodyColor = new Color(0.62f, 0.13f, 0.12f); // red; debris pieces match this
+
+    // Car sizing.
+    const float CarTargetLength = 4.4f;   // metres
+    const float CarYawOffset = 0f;        // deg (unused by the built sedan)
 
     [MenuItem("Tools/Scenario2/Build All")]
     public static void BuildAll()
@@ -145,10 +149,9 @@ public static class Scenario2Builder
         // `Road` runs along Z (centre x=0, ~14 wide x..-7..+7, 60 long), curbs at x≈±6.1,
         // sidewalks SW_R (x≈-10) and SW_L (x≈+10). Kate crosses it and the car drives down it.
 
-        // ---------- The driveable car (extracted from Environment.fbx) ----------
+        // ---------- The driveable car (clean built low-poly sedan) ----------
         Transform[] wheels;
-        var carGo = ExtractCar(envPrefab, out wheels);
-        if (carGo == null) carGo = BuildSimpleCar(out wheels);
+        var carGo = BuildSimpleCar(out wheels);
         carGo.name = "hitting_car";
         carGo.transform.position = CarStart;
         carGo.transform.rotation = Quaternion.LookRotation((CarEnd - CarStart).normalized, Vector3.up);
@@ -183,12 +186,13 @@ public static class Scenario2Builder
         screech.loop = false; screech.playOnAwake = false; screech.volume = 0.8f; screech.spatialBlend = 0f;
 
         // Debris Rigidbodies (graded physics) parked at the car's front bumper.
-        var debris = MakeDebrisPieces(carGo.transform, new Vector3(0f, 0.5f * invS, CarTargetLength * 0.45f * invS), invS, new Color(0.62f, 0.13f, 0.12f));
+        var debris = MakeDebrisPieces(carGo.transform, new Vector3(0f, 0.5f * invS, CarTargetLength * 0.45f * invS), invS, CarBodyColor);
 
         var carCtrl = carGo.AddComponent<CarController>();
         carCtrl.body = carRb;
         carCtrl.cruiseSpeed = 9f;
         carCtrl.wheels = wheels;
+        carCtrl.wheelSpinAxisLocal = Vector3.up;   // sedan wheels: cylinder axle = local Y → roll about it
         carCtrl.screech = screech;
         carCtrl.debris = debris;
         carCtrl.debrisLocalImpulse = new Vector3(0f, 4f, 2.5f);  // up + slightly forward → scatters around Kate
@@ -219,8 +223,8 @@ public static class Scenario2Builder
         kateVictim.follower = kateFollower;
         kateVictim.groundSlideZ = 0.6f;   // knocked slightly forward into the road
 
-        // Witness (textured pedestrian Ch01) — nearest the crossing, on the SW_R curb just north.
-        var witnessPos = new Vector3(-6.6f, 0f, 8f);
+        // Witness (textured pedestrian Ch01) — nearest the impact, on the SW_L (east) curb.
+        var witnessPos = new Vector3(6.3f, 0f, 6.5f);
         var witness = MakeCharacter(PedDir + "Ch01.fbx", "Witness", witnessPos, witnessAC);
         ApplyExtractedTextures(witness, "Ch01");
         var witnessAnim = witness.GetComponent<Animator>();
@@ -248,7 +252,7 @@ public static class Scenario2Builder
 
         // ---------- Paths ----------
         var paths = new GameObject("Paths").transform;
-        kateFollower.waypoints = MakePath("Kate", new[] { KateStart, KateWalk, KateCurb, KateImpact, KateCross }, paths);
+        kateFollower.waypoints = MakePath("Kate", new[] { KateStart, KateWalk, KateCurb, KateNearLane, KateImpact, KateCross }, paths);
         witnessFollower.waypoints = MakePath("Witness", new[] { witnessPos }, paths); // stays put, watching
         bg1Follower.waypoints = MakePath("BG1", new[] { new Vector3(10f, 0f, -12f), new Vector3(10f, 0f, 28f) }, paths);
         bg2Follower.waypoints = MakePath("BG2", new[] { new Vector3(-12f, 0f, 16f), new Vector3(-12f, 0f, -18f) }, paths);
@@ -280,12 +284,12 @@ public static class Scenario2Builder
         psr.sharedMaterial = debrisMat;
         kateVictim.debrisBurst = ps;
 
-        // ---------- Camera shots (road runs along Z; action around (-2.5, 0, 4)) ----------
+        // ---------- Camera shots (road runs along Z; car comes from the south, impact at (2.5,0,4)) ----------
         var shotsParent = new GameObject("CameraShots").transform;
-        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(7f, 5f, -9f), new Vector3(-2.5f, 1f, 8f));
-        var sImpact = MakeShot("Shot1_Impact", shotsParent, new Vector3(5.5f, 1.7f, 3.5f), new Vector3(-2.5f, 0.9f, 6f));
-        var sWitness = MakeShot("Shot2_Witness", shotsParent, new Vector3(-3f, 1.7f, 10.5f), new Vector3(-6.6f, 1.4f, 8f));
-        var sTwo = MakeShot("Shot3_TwoShot", shotsParent, new Vector3(3.5f, 3f, 10f), new Vector3(-4.5f, 0.5f, 6f));
+        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(-9f, 5.5f, 13f), new Vector3(3f, 0.7f, -4f));
+        var sImpact = MakeShot("Shot1_Impact", shotsParent, new Vector3(-5.5f, 1.8f, 1f), new Vector3(2.5f, 0.9f, 5f));
+        var sWitness = MakeShot("Shot2_Witness", shotsParent, new Vector3(3f, 1.7f, 9.5f), new Vector3(6.3f, 1.4f, 6.5f));
+        var sTwo = MakeShot("Shot3_TwoShot", shotsParent, new Vector3(-2f, 3f, 9.5f), new Vector3(4.2f, 0.5f, 5f));
 
         var camDir = camGo.AddComponent<CameraDirector>();
         camDir.cam = cam;
@@ -317,7 +321,8 @@ public static class Scenario2Builder
         dir.cameraDirector = camDir;
         dir.rescueChannel = channel;
         dir.autoStartOnLoad = true;
-        dir.carLaunchWaypointIndex = 2;   // launch the car when Kate steps off the curb (waypoint 2)
+        dir.carLaunchWaypointIndex = 3;   // launch the car when Kate clears the near lane (waypoint 3)
+        dir.impactSafetyTimeout = 8f;     // window (from car launch) for the contact to fire before forcing it
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -503,32 +508,60 @@ public static class Scenario2Builder
         return root;
     }
 
+    // A clean low-poly sedan, built from primitives: lower body + greenhouse cabin, a slanted
+    // windshield (and rear window), and 4 visible wheels seated on the road. Body is CarBodyColor
+    // (red) so the debris pieces match. Nose is along +z (the root's forward / travel direction);
+    // root scale stays 1 so the colliders in BuildAll are already in real metres.
     static GameObject BuildSimpleCar(out Transform[] wheels)
     {
-        Debug.LogWarning("[Scenario2Builder] No car found in Environment.fbx — building a simple primitive car.");
         var root = new GameObject("hitting_car");
         var mesh = new GameObject("CarMesh").transform; mesh.SetParent(root.transform, false);
-        var paint = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        paint.SetColor("_BaseColor", new Color(0.7f, 0.12f, 0.12f)); paint.SetFloat("_Metallic", 0.6f); paint.SetFloat("_Smoothness", 0.7f);
-        var body = GameObject.CreatePrimitive(PrimitiveType.Cube); body.name = "Car_Body"; body.transform.SetParent(mesh);
-        body.transform.localScale = new Vector3(1.8f, 0.8f, 4.2f); body.transform.localPosition = new Vector3(0f, 0.7f, 0f);
-        Object.DestroyImmediate(body.GetComponent<Collider>()); body.GetComponent<MeshRenderer>().sharedMaterial = paint;
-        var cabin = GameObject.CreatePrimitive(PrimitiveType.Cube); cabin.name = "CarRoof"; cabin.transform.SetParent(mesh);
-        cabin.transform.localScale = new Vector3(1.6f, 0.7f, 2f); cabin.transform.localPosition = new Vector3(0f, 1.3f, -0.2f);
-        Object.DestroyImmediate(cabin.GetComponent<Collider>()); cabin.GetComponent<MeshRenderer>().sharedMaterial = paint;
-        var tyreMat = new Material(Shader.Find("Universal Render Pipeline/Lit")); tyreMat.SetColor("_BaseColor", new Color(0.05f, 0.05f, 0.05f));
+
+        var paint = LitColor(CarBodyColor, 0.5f, 0.65f);
+        var glass = LitColor(new Color(0.1f, 0.13f, 0.17f), 0.0f, 0.9f);
+        var tyreMat = LitColor(new Color(0.05f, 0.05f, 0.06f), 0.0f, 0.3f);
+        var hubMat = LitColor(new Color(0.62f, 0.63f, 0.66f), 0.8f, 0.6f);
+
+        GameObject Box(string name, Vector3 scale, Vector3 pos, Vector3 euler, Material mat)
+        {
+            var g = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            g.name = name; g.transform.SetParent(mesh);
+            g.transform.localScale = scale; g.transform.localPosition = pos; g.transform.localRotation = Quaternion.Euler(euler);
+            Object.DestroyImmediate(g.GetComponent<Collider>());
+            g.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            return g;
+        }
+
+        // Lower body (hood/boot height) and a narrower greenhouse cabin set back a touch.
+        Box("Car_Body", new Vector3(1.8f, 0.55f, 4.3f), new Vector3(0f, 0.62f, 0f), Vector3.zero, paint);
+        Box("CarRoof",  new Vector3(1.55f, 0.6f, 1.95f), new Vector3(0f, 1.05f, -0.15f), Vector3.zero, paint);
+        // Slanted windshield (front) and rear window.
+        Box("Windshield", new Vector3(1.46f, 0.62f, 0.06f), new Vector3(0f, 1.0f, 0.92f), new Vector3(32f, 0f, 0f), glass);
+        Box("RearWindow", new Vector3(1.46f, 0.56f, 0.06f), new Vector3(0f, 1.0f, -1.15f), new Vector3(-34f, 0f, 0f), glass);
+
+        // Four wheels: cylinders laid on their side (axle along X), seated so they touch y=0.
         var ws = new List<Transform>();
-        float[] xs = { -0.9f, 0.9f }; float[] zs = { 1.4f, -1.4f };
+        float[] xs = { -0.92f, 0.92f }; float[] zs = { 1.45f, -1.45f };
         int wi = 0;
         foreach (var z in zs) foreach (var x in xs)
         {
-            var w = GameObject.CreatePrimitive(PrimitiveType.Cylinder); w.name = "CarTire_" + (++wi); w.transform.SetParent(mesh);
-            w.transform.localScale = new Vector3(0.7f, 0.15f, 0.7f); w.transform.localPosition = new Vector3(x, 0.35f, z);
+            var w = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            w.name = "CarTire_" + (++wi); w.transform.SetParent(mesh);
+            w.transform.localScale = new Vector3(0.72f, 0.16f, 0.72f);   // Ø0.72, 0.32 wide
+            w.transform.localPosition = new Vector3(x, 0.36f, z);        // radius 0.36 → rests on y=0
             w.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
-            Object.DestroyImmediate(w.GetComponent<Collider>()); w.GetComponent<MeshRenderer>().sharedMaterial = tyreMat;
+            Object.DestroyImmediate(w.GetComponent<Collider>());
+            w.GetComponent<MeshRenderer>().sharedMaterial = tyreMat;
+            // Hubcap so the spin reads clearly.
+            var hub = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            hub.name = "Hub"; hub.transform.SetParent(w.transform, false);
+            hub.transform.localScale = new Vector3(0.45f, 1.02f, 0.45f);
+            Object.DestroyImmediate(hub.GetComponent<Collider>());
+            hub.GetComponent<MeshRenderer>().sharedMaterial = hubMat;
             ws.Add(w.transform);
         }
         wheels = ws.ToArray();
+        Debug.Log("[Scenario2Builder] Built clean low-poly sedan (red).");
         return root;
     }
 
