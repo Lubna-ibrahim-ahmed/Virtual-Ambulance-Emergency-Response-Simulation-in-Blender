@@ -46,9 +46,27 @@ namespace EmergencySim
             _down = true;
             if (follower) follower.Halt();
             if (animator) animator.SetTrigger(fallTrigger);
-            if (debrisBurst) debrisBurst.Play();
+            if (debrisBurst) { debrisBurst.Play(); StartCoroutine(StopDebrisOnLift()); }
             OnKnockedDown?.Invoke();
             StartCoroutine(GroundAfterFall());
+        }
+
+        // The debris/blood burst emits while she's on the ground, then STOPS once the rescue lifts
+        // her onto the stretcher (the wound area is vacated) — so nothing is still animating after the
+        // ambulance departs. Looping particle systems otherwise run forever. Reusable: if the scene
+        // has no rescue, it simply leaves the burst as authored.
+        private IEnumerator StopDebrisOnLift()
+        {
+            var rescue = UnityEngine.Object.FindFirstObjectByType<RescueSequenceController>();
+            if (rescue == null) yield break;
+            while (true)
+            {
+                string beat = rescue.CurrentBeat;
+                if (beat == "lift" || beat == "load" || beat == "depart" || beat == "done") break;
+                yield return null;
+            }
+            if (debrisBurst) debrisBurst.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+            Debug.Log("[KateVictim] Debris/blood burst stopped at rescue lift.");
         }
 
         // After the fall clip, settle her from the frozen fall pose into a relaxed supine
