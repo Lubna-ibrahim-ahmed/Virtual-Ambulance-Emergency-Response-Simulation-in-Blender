@@ -28,10 +28,8 @@ namespace EmergencySim
         public float fallbackFreeze = 8f;
         [Tooltip("Tilt from vertical (deg) after which physics has 'committed' the topple.")]
         public float commitAngle = 30f;
-        [Tooltip("Seconds to smoothly settle the tree to a clean resting pose once committed.")]
+        [Tooltip("Seconds to smoothly settle the tree to a clean flat pose once committed.")]
         public float settleLerp = 0.7f;
-        [Tooltip("Pitch (deg) of the settled tree: <90 leaves the trunk angled up from the base while the canopy rests on the ground (no half-buried foliage).")]
-        public float settledPitch = -72f;
 
         public event Action<Vector3> OnHitPatient;
 
@@ -99,25 +97,18 @@ namespace EmergencySim
                 t += Time.deltaTime;
                 yield return null;
             }
-            // Take over from physics and settle it to a clean resting pose: trunk angled from the
-            // base with the canopy resting on the ground (not driven flat into the asphalt). Freeze
-            // kinematic so it can't bounce.
-            if (body)
-            {
-                body.linearVelocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
-                body.isKinematic = true;
-            }
+            // Take over from physics and lay it flat (trunk pointing -z, down the path onto Kate).
+            if (body) body.isKinematic = true;
             Quaternion start = transform.rotation;
-            Quaternion settled = Quaternion.Euler(settledPitch, transform.eulerAngles.y, 0f);
+            Quaternion flat = Quaternion.Euler(-90f, transform.eulerAngles.y, 0f);
             float lt = 0f;
             while (lt < settleLerp)
             {
                 lt += Time.deltaTime;
-                transform.rotation = Quaternion.Slerp(start, settled, lt / settleLerp);
+                transform.rotation = Quaternion.Slerp(start, flat, lt / settleLerp);
                 yield return null;
             }
-            transform.rotation = settled;
+            transform.rotation = flat;
             _frozen = true;
         }
 

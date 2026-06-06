@@ -14,17 +14,15 @@ namespace EmergencySim
         public Animator animator;
         public WaypointFollower follower;
         public ParticleSystem debrisBurst;
+        [Tooltip("Optional static blood decal; shown under her once she settles on the ground.")]
+        public GameObject bloodDecal;
         public string fallTrigger = "Fall";
-        [Tooltip("Seconds for the fall clip to settle before laying her flat on the street.")]
+        [Tooltip("Seconds for the fall clip to settle into the lying pose before grounding her.")]
         public float fallSettleTime = 2.2f;
-        [Tooltip("Slide her toward the road (+x) so she clears the fallen tree canopy.")]
-        public float groundSlideX = 3f;
-        [Tooltip("Slide her down the street (-z) so she clears the canopy and lies in the open.")]
-        public float groundSlideZ = -2.5f;
-        [Tooltip("World Y of her body once down — on the asphalt (ground top is ~-0.02).")]
-        public float finalY = 0.06f;
-        [Tooltip("Lying orientation: -90 about X = flat on her back (supine), face up.")]
-        public Vector3 lieEuler = new Vector3(-90f, 0f, 0f);
+        [Tooltip("How far to drop her onto the asphalt (the Stunned end pose floats after retargeting).")]
+        public float groundDrop = 0.5f;
+        [Tooltip("Slide her clear of the canopy toward the road (-z) so she's visible lying beside the tree, not buried under the foliage.")]
+        public float groundSlideZ = -1.6f;
 
         public event Action OnKnockedDown;
 
@@ -43,24 +41,19 @@ namespace EmergencySim
             StartCoroutine(GroundAfterFall());
         }
 
-        // The retargeted fall clip ends arched and floating, tangled in the tree canopy. Once it
-        // settles, move her clear of the canopy and lay her FLAT (supine) on the road surface.
+        // The retargeted Stunned clip ends ~0.5 m above the street; once it settles, drop her
+        // onto the asphalt so she lies on the ground.
         private IEnumerator GroundAfterFall()
         {
             yield return new WaitForSeconds(fallSettleTime);
-            Vector3 p = transform.position;
-            p.x += groundSlideX;
-            p.z += groundSlideZ;
-            p.y = finalY;
-            transform.position = p;
-            // Relax out of the arched fall pose into a calm flat pose so she lies on the street.
-            if (animator && animator.runtimeAnimatorController != null)
+            transform.position += Vector3.down * groundDrop + Vector3.forward * groundSlideZ;
+            _droppedBy = groundDrop;
+            // Reveal the static blood decal under her final resting position.
+            if (bloodDecal)
             {
-                animator.Play("Idle", 0, 0f);
-                animator.Update(0f);
+                bloodDecal.transform.position = new Vector3(transform.position.x, 0.01f, transform.position.z);
+                bloodDecal.SetActive(true);
             }
-            transform.rotation = Quaternion.Euler(lieEuler);
-            _droppedBy = 0f;
         }
 
         public void ResetState()
@@ -68,6 +61,7 @@ namespace EmergencySim
             // The director repositions Kate to her start absolutely, so just clear flags here.
             _droppedBy = 0f;
             _down = false;
+            if (bloodDecal) bloodDecal.SetActive(false);
         }
     }
 }
