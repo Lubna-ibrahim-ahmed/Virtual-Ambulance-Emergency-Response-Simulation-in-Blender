@@ -12,7 +12,8 @@ namespace EmergencySim
     {
         public void LoadScenario1() => SceneManager.LoadScene("Scenario1");
         public void LoadScenario2() => SceneManager.LoadScene("Scenario2");
-        public void LoadScenario3() => SceneManager.LoadScene("Scenario3");
+        // (LoadScenario3 removed — the Stretcher Rescue button was dropped from the menu.
+        //  The Scenario3 scene itself stays in the project and Build Settings.)
         public void LoadScenario4() => SceneManager.LoadScene("Scenario4");
 
         public void QuitApp()
