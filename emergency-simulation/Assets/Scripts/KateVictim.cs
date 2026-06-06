@@ -14,6 +14,8 @@ namespace EmergencySim
         public Animator animator;
         public WaypointFollower follower;
         public ParticleSystem debrisBurst;
+        [Tooltip("Optional static blood decal; shown under her once she settles on the ground.")]
+        public GameObject bloodDecal;
         public string fallTrigger = "Fall";
         [Tooltip("Seconds for the fall clip to settle into the lying pose before grounding her.")]
         public float fallSettleTime = 2.2f;
@@ -46,6 +48,12 @@ namespace EmergencySim
             yield return new WaitForSeconds(fallSettleTime);
             transform.position += Vector3.down * groundDrop + Vector3.forward * groundSlideZ;
             _droppedBy = groundDrop;
+            // Reveal the static blood decal under her final resting position.
+            if (bloodDecal)
+            {
+                bloodDecal.transform.position = new Vector3(transform.position.x, 0.01f, transform.position.z);
+                bloodDecal.SetActive(true);
+            }
         }
 
         public void ResetState()
@@ -53,6 +61,7 @@ namespace EmergencySim
             // The director repositions Kate to her start absolutely, so just clear flags here.
             _droppedBy = 0f;
             _down = false;
+            if (bloodDecal) bloodDecal.SetActive(false);
         }
     }
 }

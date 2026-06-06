@@ -19,15 +19,17 @@ public static class Scenario2Builder
     const string CtrlDir = "Assets/Animations/Controllers/";
     const string ChannelPath = "Assets/Scripts/Channels/RescueRequested.asset";
 
-    // ---- Tunable layout ----
-    // The road runs along X (cars drive +x); the pedestrian crossing is at x=0, road centred at z=5.
-    static readonly Vector3 CrossCenter = new Vector3(0f, 0f, 5f);
-    static readonly Vector3 KateStart   = new Vector3(-6f, 0f, 1.2f);   // near sidewalk
-    static readonly Vector3 KateCurb    = new Vector3(0f, 0f, 1.6f);    // steps off here → launches the car
-    static readonly Vector3 KateImpact  = new Vector3(0f, 0f, 5f);      // road centre (where the car hits)
-    static readonly Vector3 CarStart    = new Vector3(-17f, 0f, 5f);    // car spawns up the road
-    static readonly Vector3 CarEnd       = new Vector3(14f, 0f, 5f);    // drives off-frame this way
-    static readonly Vector3 BrakeZonePos = new Vector3(-4.5f, 0.6f, 5f);// car slams brakes here
+    // ---- Tunable layout (on the Environment's existing `Road`, which runs along Z) ----
+    // Kate walks SW_R (x≈-9.5) north, steps off the curb (x≈-6), and crosses east (+x) into the
+    // road. The car drives south (-z) down the lane at x≈-2.5; impact where her path meets it.
+    static readonly Vector3 KateStart   = new Vector3(-9.5f, 0f, -4f);  // SW_R sidewalk start
+    static readonly Vector3 KateWalk    = new Vector3(-9.5f, 0f, 3f);   // walks north along the sidewalk
+    static readonly Vector3 KateCurb    = new Vector3(-6.3f, 0f, 4f);   // steps off the curb → launches the car
+    static readonly Vector3 KateImpact  = new Vector3(-2.5f, 0f, 4f);   // car's lane (where she's hit)
+    static readonly Vector3 KateCross   = new Vector3(0.8f, 0f, 4f);    // continues across (she won't reach it)
+    static readonly Vector3 CarStart    = new Vector3(-2.5f, 0f, 28f);  // car spawns up the road (north)
+    static readonly Vector3 CarEnd       = new Vector3(-2.5f, 0f, -26f);// drives south, off-frame
+    static readonly Vector3 BrakeZonePos = new Vector3(-2.5f, 0.6f, 9f);// car slams brakes here (just N of the crossing)
 
     // Car mesh fix-ups (tuned after a screenshot).
     const float CarTargetLength = 4.4f;   // metres; scales the extracted mesh to match Kate
@@ -139,45 +141,9 @@ public static class Scenario2Builder
                     mfc.gameObject.SetActive(false);
             }
 
-        // ---------- Road + crosswalk (readable daytime crossing) ----------
-        var roadParent = new GameObject("Road").transform;
-        var asphalt = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        asphalt.name = "Asphalt";
-        asphalt.transform.SetParent(roadParent);
-        asphalt.transform.position = new Vector3(0f, 0.01f, 5f);
-        asphalt.transform.localScale = new Vector3(44f, 0.02f, 7f);
-        Object.DestroyImmediate(asphalt.GetComponent<Collider>());
-        var asphaltMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        asphaltMat.SetColor("_BaseColor", new Color(0.13f, 0.13f, 0.14f));
-        asphaltMat.SetFloat("_Smoothness", 0.18f);
-        asphalt.GetComponent<MeshRenderer>().sharedMaterial = asphaltMat;
-        // Lane dashes down the middle.
-        var laneMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        laneMat.SetColor("_BaseColor", new Color(0.85f, 0.8f, 0.2f));
-        for (int i = -4; i <= 4; i++)
-        {
-            if (i >= -1 && i <= 1) continue; // gap at the crossing
-            var dash = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            dash.name = "LaneDash";
-            dash.transform.SetParent(roadParent);
-            dash.transform.position = new Vector3(i * 3f, 0.03f, 5f);
-            dash.transform.localScale = new Vector3(1.4f, 0.02f, 0.18f);
-            Object.DestroyImmediate(dash.GetComponent<Collider>());
-            dash.GetComponent<MeshRenderer>().sharedMaterial = laneMat;
-        }
-        // White crosswalk stripes across the road at x=0.
-        var stripeMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        stripeMat.SetColor("_BaseColor", new Color(0.92f, 0.92f, 0.92f));
-        for (int i = 0; i < 7; i++)
-        {
-            var s = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            s.name = "Crosswalk";
-            s.transform.SetParent(roadParent);
-            s.transform.position = new Vector3(-1.8f + i * 0.6f, 0.03f, 5f);
-            s.transform.localScale = new Vector3(0.32f, 0.02f, 6.4f);
-            Object.DestroyImmediate(s.GetComponent<Collider>());
-            s.GetComponent<MeshRenderer>().sharedMaterial = stripeMat;
-        }
+        // No custom road geometry — the action uses the Environment's existing street:
+        // `Road` runs along Z (centre x=0, ~14 wide x..-7..+7, 60 long), curbs at x≈±6.1,
+        // sidewalks SW_R (x≈-10) and SW_L (x≈+10). Kate crosses it and the car drives down it.
 
         // ---------- The driveable car (extracted from Environment.fbx) ----------
         Transform[] wheels;
@@ -217,7 +183,7 @@ public static class Scenario2Builder
         screech.loop = false; screech.playOnAwake = false; screech.volume = 0.8f; screech.spatialBlend = 0f;
 
         // Debris Rigidbodies (graded physics) parked at the car's front bumper.
-        var debris = MakeDebrisPieces(carGo.transform, new Vector3(0f, 0.5f * invS, CarTargetLength * 0.45f * invS), 6, invS);
+        var debris = MakeDebrisPieces(carGo.transform, new Vector3(0f, 0.5f * invS, CarTargetLength * 0.45f * invS), invS, new Color(0.62f, 0.13f, 0.12f));
 
         var carCtrl = carGo.AddComponent<CarController>();
         carCtrl.body = carRb;
@@ -234,7 +200,7 @@ public static class Scenario2Builder
         var brakeGo = new GameObject("BrakeZone");
         brakeGo.transform.position = BrakeZonePos;
         var brakeCol = brakeGo.AddComponent<BoxCollider>();
-        brakeCol.size = new Vector3(1.5f, 2f, 7f);
+        brakeCol.size = new Vector3(2.6f, 2f, 3f);   // spans the lane (x), thin across the road (z)
         brakeCol.isTrigger = true;
         var brakeTrig = brakeGo.AddComponent<BrakeZoneTrigger>();
         brakeTrig.car = carCtrl;
@@ -251,10 +217,11 @@ public static class Scenario2Builder
         var kateVictim = kate.AddComponent<KateVictim>();
         kateVictim.animator = kateAnim;
         kateVictim.follower = kateFollower;
-        kateVictim.groundSlideZ = 0.6f;   // knocked slightly forward (+z) across the crosswalk
+        kateVictim.groundSlideZ = 0.6f;   // knocked slightly forward into the road
 
-        // Witness (textured pedestrian Ch01) — nearest the crossing, on the far corner.
-        var witness = MakeCharacter(PedDir + "Ch01.fbx", "Witness", new Vector3(3.5f, 0f, 8.2f), witnessAC);
+        // Witness (textured pedestrian Ch01) — nearest the crossing, on the SW_R curb just north.
+        var witnessPos = new Vector3(-6.6f, 0f, 8f);
+        var witness = MakeCharacter(PedDir + "Ch01.fbx", "Witness", witnessPos, witnessAC);
         ApplyExtractedTextures(witness, "Ch01");
         var witnessAnim = witness.GetComponent<Animator>();
         var witnessFollower = witness.AddComponent<WaypointFollower>();
@@ -266,14 +233,14 @@ public static class Scenario2Builder
         witnessCtrl.lookAtTarget = kate.transform;
         witnessCtrl.phoneProp = MakePhoneProp(witness);
 
-        // Background pedestrians — walk other paths, keep going.
-        var bg1 = MakeCharacter(PedDir + "Ch02.fbx", "Background1", new Vector3(-8f, 0f, 8.4f), bgAC);
+        // Background pedestrians — walk the sidewalks (along Z), keep going.
+        var bg1 = MakeCharacter(PedDir + "Ch02.fbx", "Background1", new Vector3(10f, 0f, -12f), bgAC);
         ApplyExtractedTextures(bg1, "Ch02");
         var bg1Follower = bg1.AddComponent<WaypointFollower>();
         bg1Follower.animator = bg1.GetComponent<Animator>();
         bg1Follower.speed = 1.4f;
 
-        var bg2 = MakeCharacter(PedDir + "Ch33.fbx", "Background2", new Vector3(9f, 0f, 0.6f), bgAC);
+        var bg2 = MakeCharacter(PedDir + "Ch33.fbx", "Background2", new Vector3(-12f, 0f, 16f), bgAC);
         ApplyExtractedTextures(bg2, "Ch33");
         var bg2Follower = bg2.AddComponent<WaypointFollower>();
         bg2Follower.animator = bg2.GetComponent<Animator>();
@@ -281,15 +248,18 @@ public static class Scenario2Builder
 
         // ---------- Paths ----------
         var paths = new GameObject("Paths").transform;
-        kateFollower.waypoints = MakePath("Kate", new[] { KateStart, KateCurb, KateImpact }, paths);
-        witnessFollower.waypoints = MakePath("Witness", new[] { new Vector3(3.5f, 0f, 8.2f) }, paths); // stays put, watching
-        bg1Follower.waypoints = MakePath("BG1", new[] { new Vector3(-8f, 0f, 8.4f), new Vector3(14f, 0f, 8.4f) }, paths);
-        bg2Follower.waypoints = MakePath("BG2", new[] { new Vector3(9f, 0f, 0.6f), new Vector3(-12f, 0f, 0.6f) }, paths);
+        kateFollower.waypoints = MakePath("Kate", new[] { KateStart, KateWalk, KateCurb, KateImpact, KateCross }, paths);
+        witnessFollower.waypoints = MakePath("Witness", new[] { witnessPos }, paths); // stays put, watching
+        bg1Follower.waypoints = MakePath("BG1", new[] { new Vector3(10f, 0f, -12f), new Vector3(10f, 0f, 28f) }, paths);
+        bg2Follower.waypoints = MakePath("BG2", new[] { new Vector3(-12f, 0f, 16f), new Vector3(-12f, 0f, -18f) }, paths);
 
-        kate.transform.rotation = Quaternion.LookRotation((KateCurb - KateStart).normalized);
-        witness.transform.rotation = Quaternion.LookRotation((CrossCenter - witness.transform.position).normalized);
-        bg1.transform.rotation = Quaternion.LookRotation(Vector3.right);
-        bg2.transform.rotation = Quaternion.LookRotation(Vector3.left);
+        kate.transform.rotation = Quaternion.LookRotation((KateWalk - KateStart).normalized);
+        witness.transform.rotation = Quaternion.LookRotation((KateImpact - witnessPos).normalized);
+        bg1.transform.rotation = Quaternion.LookRotation(Vector3.forward);
+        bg2.transform.rotation = Quaternion.LookRotation(Vector3.back);
+
+        // ---------- Static clinical blood decal under Kate (activated when she's down) ----------
+        kateVictim.bloodDecal = MakeBloodDecal(KateImpact);
 
         // ---------- Debris particle burst (alongside the Rigidbody pieces) ----------
         var debrisGo = new GameObject("DebrisBurst");
@@ -310,12 +280,12 @@ public static class Scenario2Builder
         psr.sharedMaterial = debrisMat;
         kateVictim.debrisBurst = ps;
 
-        // ---------- Camera shots ----------
+        // ---------- Camera shots (road runs along Z; action around (-2.5, 0, 4)) ----------
         var shotsParent = new GameObject("CameraShots").transform;
-        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(9f, 4.5f, -3f), new Vector3(0f, 1f, 5f));
-        var sImpact = MakeShot("Shot1_Impact", shotsParent, new Vector3(-7f, 1.6f, 9.5f), new Vector3(0f, 1f, 5f));
-        var sWitness = MakeShot("Shot2_Witness", shotsParent, new Vector3(1.5f, 1.8f, 9.5f), new Vector3(3.5f, 1.4f, 8.2f));
-        var sTwo = MakeShot("Shot3_TwoShot", shotsParent, new Vector3(6.5f, 3f, 9.5f), new Vector3(0.5f, 0.6f, 6f));
+        var sWide = MakeShot("Shot0_Wide", shotsParent, new Vector3(7f, 5f, -9f), new Vector3(-2.5f, 1f, 8f));
+        var sImpact = MakeShot("Shot1_Impact", shotsParent, new Vector3(5.5f, 1.7f, 3.5f), new Vector3(-2.5f, 0.9f, 6f));
+        var sWitness = MakeShot("Shot2_Witness", shotsParent, new Vector3(-3f, 1.7f, 10.5f), new Vector3(-6.6f, 1.4f, 8f));
+        var sTwo = MakeShot("Shot3_TwoShot", shotsParent, new Vector3(3.5f, 3f, 10f), new Vector3(-4.5f, 0.5f, 6f));
 
         var camDir = camGo.AddComponent<CameraDirector>();
         camDir.cam = cam;
@@ -347,7 +317,7 @@ public static class Scenario2Builder
         dir.cameraDirector = camDir;
         dir.rescueChannel = channel;
         dir.autoStartOnLoad = true;
-        dir.carLaunchWaypointIndex = 1;   // launch the car when Kate steps off the curb
+        dir.carLaunchWaypointIndex = 2;   // launch the car when Kate steps off the curb (waypoint 2)
 
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
@@ -398,6 +368,29 @@ public static class Scenario2Builder
         string p = t.name;
         while (t.parent != null) { t = t.parent; p = t.name + "/" + p; }
         return p;
+    }
+
+    [MenuItem("Tools/Scenario2/Diagnose Streets")]
+    public static void DiagnoseStreets()
+    {
+        var envPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(ModelDir + "Environment.fbx");
+        var src = (GameObject)PrefabUtility.InstantiatePrefab(envPrefab);
+        Debug.Log("[Scenario2Builder] Street dump START (large flat low meshes = roads/sidewalks):");
+        int n = 0;
+        foreach (var mfc in src.GetComponentsInChildren<MeshFilter>(true))
+        {
+            var r = mfc.GetComponent<Renderer>();
+            if (r == null) continue;
+            Vector3 s = r.bounds.size, c = r.bounds.center;
+            if (c.y > 1.5f) continue;
+            if (s.y > 1.2f) continue;
+            if (s.x < 5f && s.z < 5f) continue;
+            string mn = mfc.sharedMesh != null ? mfc.sharedMesh.name : "?";
+            Debug.Log($"[Street] node='{mfc.name}' mesh='{mn}' center={c:F1} size={s:F1}");
+            if (++n > 40) break;
+        }
+        Debug.Log($"[Scenario2Builder] Street dump END — {n} flat pieces.");
+        Object.DestroyImmediate(src);
     }
 
     static void AddSpot(Transform parent, string name, Vector3 pos, Vector3 euler, Color col, float intensity, float range, float angle)
@@ -539,26 +532,81 @@ public static class Scenario2Builder
         return root;
     }
 
-    static Rigidbody[] MakeDebrisPieces(Transform parent, Vector3 localPos, int count, float invScale)
+    // Debris pieces shaped like car parts (still primitives): 2 thin slabs (panel + glass),
+    // 1 flat cylinder (hubcap), 3 irregular chunks. Physics is unchanged — kinematic until the
+    // CarController releases them with an impulse. Sizes are in real metres (× invScale to undo
+    // the car root's scale). Most match the body colour; one is glass-grey, one metal.
+    static Rigidbody[] MakeDebrisPieces(Transform parent, Vector3 localPos, float invScale, Color bodyColor)
     {
-        var pieces = new List<Rigidbody>();
-        var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mat.SetColor("_BaseColor", new Color(0.55f, 0.56f, 0.6f)); mat.SetFloat("_Metallic", 0.7f); mat.SetFloat("_Smoothness", 0.5f);
-        // Parent carries a uniform scale; multiply local size/spacing by invScale to keep real-world size.
-        for (int i = 0; i < count; i++)
+        var bodyMat = LitColor(bodyColor, 0.6f, 0.5f);
+        var glassMat = LitColor(new Color(0.62f, 0.68f, 0.72f), 0.1f, 0.85f);
+        var metalMat = LitColor(new Color(0.6f, 0.6f, 0.63f), 0.8f, 0.6f);
+
+        // (primitive, real-world size, material). Cylinder = flat hubcap.
+        var specs = new (PrimitiveType prim, Vector3 size, Material mat)[]
         {
-            var p = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            (PrimitiveType.Cube,     new Vector3(0.52f, 0.04f, 0.34f), bodyMat),   // body panel slab
+            (PrimitiveType.Cube,     new Vector3(0.40f, 0.03f, 0.50f), glassMat),  // glass shard slab
+            (PrimitiveType.Cylinder, new Vector3(0.32f, 0.05f, 0.32f), metalMat),  // hubcap (flat disc)
+            (PrimitiveType.Cube,     new Vector3(0.20f, 0.16f, 0.24f), bodyMat),   // chunk
+            (PrimitiveType.Cube,     new Vector3(0.27f, 0.10f, 0.15f), bodyMat),   // chunk
+            (PrimitiveType.Cube,     new Vector3(0.15f, 0.20f, 0.13f), bodyMat),   // chunk
+        };
+
+        var pieces = new List<Rigidbody>();
+        for (int i = 0; i < specs.Length; i++)
+        {
+            var sp = specs[i];
+            var p = GameObject.CreatePrimitive(sp.prim);
             p.name = "Debris_" + i;
             p.transform.SetParent(parent, false);
-            p.transform.localPosition = localPos + new Vector3((i - count * 0.5f) * 0.18f * invScale, i * 0.06f * invScale, 0f);
-            float sz = invScale;
-            p.transform.localScale = new Vector3(0.26f * sz, 0.1f * sz, 0.18f * sz);
-            p.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            p.transform.localPosition = localPos + new Vector3((i - specs.Length * 0.5f) * 0.18f * invScale, i * 0.06f * invScale, 0f);
+            // Cylinder primitive is 2 units tall, so halve its Y to hit the requested thickness.
+            Vector3 s = sp.size; if (sp.prim == PrimitiveType.Cylinder) s.y *= 0.5f;
+            p.transform.localScale = s * invScale;
+            Object.DestroyImmediate(p.GetComponent<Collider>());
+            p.AddComponent<BoxCollider>();   // dynamic-safe collider for every shape
+            p.GetComponent<MeshRenderer>().sharedMaterial = sp.mat;
             var rb = p.AddComponent<Rigidbody>();
             rb.mass = 0.4f; rb.isKinematic = true;
             pieces.Add(rb);
         }
         return pieces.ToArray();
+    }
+
+    static Material LitColor(Color c, float metallic, float smoothness)
+    {
+        var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        m.SetColor("_BaseColor", c); m.SetFloat("_Metallic", metallic); m.SetFloat("_Smoothness", smoothness);
+        return m;
+    }
+
+    // Static, clinical blood: a main flat dark red-brown disc + two smaller irregular ones, flush
+    // on the asphalt (+0.01 Y). Built hidden; KateVictim moves it under her and shows it when down.
+    static GameObject MakeBloodDecal(Vector3 center)
+    {
+        var root = new GameObject("BloodPool");
+        root.transform.position = new Vector3(center.x, 0.01f, center.z);
+        var mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        mat.SetColor("_BaseColor", new Color(0.22f, 0.045f, 0.035f)); // dark, desaturated red-brown
+        mat.SetFloat("_Metallic", 0f);
+        mat.SetFloat("_Smoothness", 0.22f);
+        AddBloodDisc(root.transform, mat, new Vector3(0f, 0f, 0f),       new Vector3(1.5f, 0.012f, 1.28f));
+        AddBloodDisc(root.transform, mat, new Vector3(0.72f, 0f, -0.5f), new Vector3(0.56f, 0.012f, 0.64f));
+        AddBloodDisc(root.transform, mat, new Vector3(-0.58f, 0f, 0.5f), new Vector3(0.42f, 0.012f, 0.36f));
+        root.SetActive(false);
+        return root;
+    }
+
+    static void AddBloodDisc(Transform parent, Material mat, Vector3 localPos, Vector3 scale)
+    {
+        var d = GameObject.CreatePrimitive(PrimitiveType.Cylinder);   // flat cylinder = disc
+        d.name = "Blood";
+        d.transform.SetParent(parent, false);
+        d.transform.localPosition = localPos;
+        d.transform.localScale = scale;
+        Object.DestroyImmediate(d.GetComponent<Collider>());
+        d.GetComponent<MeshRenderer>().sharedMaterial = mat;
     }
 
     static AudioClip GetOrCreateScreechClip()
