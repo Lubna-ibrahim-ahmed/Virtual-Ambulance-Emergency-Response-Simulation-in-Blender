@@ -65,3 +65,13 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# OS junk
+.DS_Store
+
+# Large installers / disk images (e.g. Blender dmg dropped in the project) — never commit
+*.dmg
+*.dmg.meta
+
+# Editor debug screenshots
+/[Aa]ssets/[Ss]creenshots/
