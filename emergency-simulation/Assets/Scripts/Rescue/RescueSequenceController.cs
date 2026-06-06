@@ -401,13 +401,21 @@ namespace EmergencySim
             patient.SetParent(anchor, true);
             patient.localPosition = patientLocalOffset;
             patient.localRotation = lie;
-            // Rest her ON TOP of the mattress: measure her lowest point and lift so it meets the surface
-            // (instead of clipping into the mattress). Computed from the mesh bound, not a magic number.
+            // Center the VISIBLE body on the mattress and rest it ON TOP — positioned by the rendered
+            // bounds, NOT the transform pivot. Some rigs (e.g. Character_Ch21) have their skeleton/Hips
+            // baked metres off their GameObject pivot, so pivot-based placement floats the body off the
+            // bed. X/Z: shift so the body's center sits over the mattress center (anchor). Y: lift so the
+            // lowest point meets the measured surface. Same measure-and-compensate idea as before, now in
+            // all three axes — harmless for aligned rigs (offset ~0), corrects offset rigs.
             if (pa != null) pa.Update(0f);
             Bounds b = RendererBounds(patient);
+            Vector3 fix = new Vector3(anchor.position.x - b.center.x, 0f, anchor.position.z - b.center.z);
+            patient.position += fix;
+            if (pa != null) pa.Update(0f);
+            b = RendererBounds(patient);
             float delta = surfaceY - b.min.y;
             patient.position += Vector3.up * delta;
-            Debug.Log($"[Rescue] Stretcher surface Y={surfaceY:F3}; patient back was {b.min.y:F3}, raised +{delta:F3} to rest on top.");
+            Debug.Log($"[Rescue] Lift placement: centered body XZ by {fix.x:F2},{fix.z:F2} onto mattress; surface Y={surfaceY:F3}, raised +{delta:F3} to rest on top.");
         }
 
         private static bool HasIdleState(Animator a)

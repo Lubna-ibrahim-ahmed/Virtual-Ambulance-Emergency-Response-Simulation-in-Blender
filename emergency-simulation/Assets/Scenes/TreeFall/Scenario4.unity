@@ -14985,6 +14985,7 @@ MonoBehaviour:
   animator: {fileID: 329945516}
   follower: {fileID: 329945521}
   debrisBurst: {fileID: 815523664}
+  bloodDecal: {fileID: 0}
   fallTrigger: Fall
   fallSettleTime: 2.2
   groundDrop: 0.5
@@ -59970,6 +59971,119 @@ Material:
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+--- !u!1001 &1083705093
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 340149145796788471, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_Text
+      value: "A storm approaches\u2026"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2430045840960467500, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_Text
+      value: "Scenario 3 \u2014 Falling Tree"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2548744314071659910, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: hint
+      value: "A storm approaches\u2026"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2548744314071659910, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: title
+      value: "Scenario 3 \u2014 Falling Tree"
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_Pivot.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_AnchorMax.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_AnchorMin.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3697982705674744544, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7653911164891923205, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
+      propertyPath: m_Name
+      value: IntroCard
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 2552f5a51463f4730aea63d29eea3c10, type: 3}
 --- !u!1 &1085761215
 GameObject:
   m_ObjectHideFlags: 0
@@ -118468,3 +118582,4 @@ SceneRoots:
   - {fileID: 958014634}
   - {fileID: 1579875503}
   - {fileID: 680140058}
+  - {fileID: 1083705093}
